@@ -16,21 +16,18 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
     <!-- Nuestro CSS y JS -->
-    <!-- Agregamos ?v=3 para forzar al navegador a descargar la nueva versión hoy -->
-    <link rel="stylesheet" href="styles.css?v=3">
-    <script src="app.js?v=3" defer></script>
+    <link rel="stylesheet" href="styles.css?v=4">
+    <script src="app.js?v=4" defer></script>
 </head>
 <body>
 
 <!-- PANTALLA DE CONTRASEÑA -->
 <div id="login-overlay">
     <div class="login-box">
-        <div class="login-logo"><i class="fas fa-car-side"></i></div>
         <h2>Control de Órdenes</h2>
-        <p>Hyundai Coatzacoalcos | Ingresa tu clave</p>
+        <p>Hyundai Gerencia | Acceso Restringido</p>
         <input type="password" id="pass-input" placeholder="Contraseña">
         <button id="btn-login">Ingresar</button>
-        <p id="login-error">Contraseña o rol incorrecto. Intenta de nuevo.</p>
     </div>
 </div>
 
@@ -164,7 +161,7 @@
 </div>
 
 <!-- Firma Oculta -->
-<div style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: var(--grey); opacity: 0.3; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">EMM</div>
+<div style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: var(--text-muted); opacity: 0.3; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">EMM</div>
 
 </body>
 </html>
