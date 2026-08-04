@@ -40,7 +40,14 @@ function verificarPassword() {
         ALLOWED_SECTIONS = []; // No modifica nada
     } 
     else {
-        document.getElementById('login-error').style.display = 'block';
+        // AQUÍ ESTÁ LA NUEVA ALERTA VISUAL DE ERROR
+        mostrarToast("Acceso denegado: Contraseña incorrecta.", "fa-times-circle");
+        let errorText = document.getElementById('login-error');
+        if (errorText) errorText.style.display = 'none'; // Ocultamos el texto viejo si existe
+        
+        // Limpiamos la caja para que el usuario intente de nuevo
+        document.getElementById('pass-input').value = '';
+        document.getElementById('pass-input').focus();
         return;
     }
     
