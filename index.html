@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Control de Órdenes - Hyundai Coatza</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Librerías Externas -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+
+    <!-- Nuestro CSS y JS -->
+    <link rel="stylesheet" href="styles.css">
+    <script src="app.js" defer></script>
+</head>
+
+<body>
+
+    <!-- PANTALLA DE CONTRASEÑA -->
+    <div id="login-overlay">
+        <div class="login-box">
+            <div class="login-logo"><i class="fas fa-car-side"></i></div>
+            <h2>Control de Órdenes</h2>
+            <p>Hyundai Coatzacoalcos | Ingresa tu clave</p>
+            <input type="password" id="pass-input" placeholder="Contraseña">
+            <button id="btn-login">Ingresar</button>
+            <p id="login-error">Contraseña incorrecta. Intenta de nuevo.</p>
+        </div>
+    </div>
+
+    <div class="container" id="main-app">
+        <!-- HEADER -->
+        <header>
+            <div class="header-left">
+                <div class="header-brand">
+                    <h1>Control de Órdenes</h1>
+                    <span>Hyundai Coatzacoalcos | <span id="fecha-hoy"></span></span>
+                </div>
+            </div>
+
+            <div class="header-actions">
+                <!-- Solo visible para EDITOR -->
+                <div class="upload-info" id="caja-cargar-excel">
+                    <label class="btn btn-upload">
+                        <i class="fas fa-upload"></i> Cargar Excel
+                        <input type="file" id="input-excel" accept=".xls,.xlsx,.csv" />
+                    </label>
+                    <div class="sync-status">Última carga: <span id="ultima-carga-fecha">Buscando en la nube...</span>
+                    </div>
+                </div>
+
+                <button class="btn btn-save" id="btn-sync"><i class="fas fa-cloud"></i> Sincronizado</button>
+                <button class="btn btn-excel" id="btn-export"><i class="fas fa-file-excel"></i> Exportar</button>
+            </div>
+        </header>
+
+        <!-- ESTADO VACÍO (Cuando no hay Excel) -->
+        <div id="empty-state" class="empty-state" style="display: none;">
+            <i class="fas fa-folder-open empty-icon"></i>
+            <h2>No hay datos cargados hoy</h2>
+            <p>Parece que el tablero está en blanco. Por favor, carga el reporte de Excel más reciente para visualizar
+                las órdenes y el estado del servicio.</p>
+        </div>
+
+        <!-- BANNER DE FILTROS -->
+        <div id="active-filters-banner" class="filter-banner">
+            <div><i class="fas fa-exclamation-triangle"></i> Tienes filtros activos en <span
+                    id="filtros-seccion"></span>. Ocultando <span id="filtros-count">0</span> estatus.</div>
+            <button class="btn btn-outline-danger" id="btn-clear-filters"><i class="fas fa-times"></i> Quitar
+                Filtros</button>
+        </div>
+
+        <!-- KPI PANEL -->
+        <div id="summary-panel" class="summary-panel">
+            <div class="kpi-card total">
+                <div class="kpi-label">Total Órdenes</div>
+                <div class="kpi-value" id="kpi-total-ops">0</div>
+            </div>
+            <div class="kpi-card ok">
+                <div class="kpi-label">&lt; 15 Días</div>
+                <div class="kpi-value txt-ok" id="kpi-ok-ops">0</div>
+            </div>
+            <div class="kpi-card warn">
+                <div class="kpi-label">15 a 29 Días</div>
+                <div class="kpi-value txt-warn" id="kpi-warn-ops">0</div>
+            </div>
+            <div class="kpi-card alert">
+                <div class="kpi-label">≥ 30 Días</div>
+                <div class="kpi-value txt-alert" id="kpi-alert-ops">0</div>
+            </div>
+            <div class="kpi-card money">
+                <div class="kpi-label">Dinero Total (S/IVA)</div>
+                <div class="kpi-value txt-money" id="kpi-money">0</div>
+                <div class="kpi-sub" id="kpi-money-sub"></div>
+            </div>
+        </div>
+
+        <!-- SECCIÓN DE CORREO -->
+        <div id="email-section" class="email-section">
+            <div class="email-header">
+                <h3><i class="fas fa-envelope-open-text"></i> Resumen Ejecutivo (Para Correo)</h3>
+                <button class="copy-btn" id="btn-copy-summary"><i class="fas fa-copy"></i> Copiar Tabla</button>
+            </div>
+            <div id="tabla-resumen-container" class="table-responsive"></div>
+        </div>
+
+        <!-- TABLERO PRINCIPAL (Tarjetas Dinámicas) -->
+        <div id="dashboard" class="grid-container"></div>
+    </div>
+
+    <!-- LISTAS DESPLEGABLES INVISIBLES -->
+    <datalist id="list-comentarios"></datalist>
+    <datalist id="list-observaciones"></datalist>
+
+    <!-- MENÚ FLOTANTE DE FILTROS -->
+    <div id="floatingFilter" class="floating-filter-menu" style="display:none;">
+        <div class="floating-filter-header">
+            <span><i class="fas fa-filter"></i> Filtrar <span id="filter-section-title"></span></span>
+            <span class="close-filter" id="btn-close-filter">&times;</span>
+        </div>
+        <div id="floatingFilterList" class="floating-filter-list"></div>
+        <div class="floating-filter-footer">
+            <button class="btn btn-save full-width" id="btn-apply-filter">Aplicar Filtro</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE ANÁLISIS (GRÁFICAS) -->
+    <div id="kpiModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="btn-close-modal">&times;</span>
+            <h2 id="modalTitle" class="modal-title">Análisis</h2>
+
+            <div class="filtro-semaforo-container">
+                <label for="modalFiltroSemaforo"><i class="fas fa-filter"></i> Filtrar Gráficas por Antigüedad:</label>
+                <select id="modalFiltroSemaforo">
+                    <option value="todos">Mostrar Todas las Órdenes</option>
+                    <option value="verde">Solo Verde (< 15 días)</option>
+                    <option value="amarillo">Solo Amarillo (15 a 29 días)</option>
+                    <option value="rojo">Solo Rojo (≥ 30 días)</option>
+                </select>
+            </div>
+
+            <div id="modalMainView" class="modal-body-main">
+                <div class="chart-box">
+                    <h4>Carga por Asesor</h4>
+                    <div class="chart-wrapper"><canvas id="chartAsesores"></canvas></div>
+                </div>
+                <div class="chart-details-box">
+                    <p class="hint-text">(Haz clic en las filas para ver detalle filtrado)</p>
+                    <div class="detail-section">
+                        <h4>Desglose por Seguimiento</h4>
+                        <div id="tableEstatusContainer"></div>
+                    </div>
+                    <div class="detail-section">
+                        <h4 class="border-green">Desglose por Comentarios</h4>
+                        <div id="tableObservacionesContainer"></div>
+                    </div>
+                    <div class="detail-section">
+                        <h4 class="border-blue">Desglose por Asesor</h4>
+                        <div id="tableAsesorContainer"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="modalDetailView" class="modal-body-detail">
+                <button class="btn-back" id="btn-back-modal"><i class="fas fa-arrow-left"></i> Volver a
+                    Gráficas</button>
+                <div class="email-header modal-detail-header">
+                    <h3 id="detalleTitulo" class="txt-money">Detalle Filtrado</h3>
+                    <div class="flex-gap">
+                        <button class="copy-btn" id="btn-copy-detail"><i class="fas fa-copy"></i> Copiar Lista</button>
+                        <button class="btn-excel btn-sm" id="btn-export-detail"><i class="fas fa-file-excel"></i>
+                            Excel</button>
+                    </div>
+                </div>
+                <div id="detalleTablaContainer" class="table-responsive"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Firma Oculta -->
+    <div
+        style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: var(--grey); opacity: 0.3; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">
+        EMM</div>
+
+</body>
+
+</html>
