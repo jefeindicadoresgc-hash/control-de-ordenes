@@ -15,19 +15,20 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- Nuestro CSS y JS -->
-    <link rel="stylesheet" href="styles.css">
-    <script src="app.js" defer></script>
+    <!-- Nuestro CSS y JS (Actualizado a v5 para evitar problemas de caché) -->
+    <link rel="stylesheet" href="styles.css?v=5">
+    <script src="app.js?v=5" defer></script>
 </head>
 <body>
 
 <!-- PANTALLA DE CONTRASEÑA -->
 <div id="login-overlay">
     <div class="login-box">
+        <div class="login-logo"><i class="fas fa-chart-line"></i></div>
         <h2>Control de Órdenes</h2>
-        <p>Hyundai Coatzacoalcos | Acceso Seguro</p>
-        <input type="password" id="pass-input" placeholder="Ingresa tu clave...">
-        <button id="btn-login">Ingresar al Sistema</button>
+        <p>Hyundai Coatzacoalcos | Ingresa tu clave</p>
+        <input type="password" id="pass-input" placeholder="Contraseña">
+        <button id="btn-login">Ingresar</button>
         <p id="login-error">Contraseña o rol incorrecto. Intenta de nuevo.</p>
     </div>
 </div>
@@ -53,15 +54,15 @@
             </div>
             
             <button class="btn btn-save" id="btn-sync"><i class="fas fa-cloud"></i> Sincronizado</button>
-            <button class="btn btn-excel" id="btn-export"><i class="fas fa-file-excel"></i> Exportar Datos</button>
+            <button class="btn btn-excel" id="btn-export"><i class="fas fa-file-excel"></i> Exportar</button>
         </div>
     </header>
 
     <!-- ESTADO VACÍO -->
     <div id="empty-state" class="empty-state" style="display: none;">
-        <i class="fas fa-table empty-icon"></i>
-        <h2>No hay datos en el sistema</h2>
-        <p>El tablero está en blanco. Por favor, solicita al administrador que cargue el reporte de Excel más reciente para comenzar.</p>
+        <i class="fas fa-folder-open empty-icon"></i>
+        <h2>No hay datos cargados hoy</h2>
+        <p>Parece que el tablero está en blanco. Por favor, solicita al administrador que cargue el reporte de Excel más reciente.</p>
     </div>
 
     <!-- BANNER DE FILTROS -->
@@ -116,9 +117,9 @@
 <div id="kpiModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" id="btn-close-modal">&times;</span>
-        <h2 id="modalTitle" class="modal-title">Análisis de Sección</h2>
+        <h2 id="modalTitle" class="modal-title">Análisis</h2>
         <div class="filtro-semaforo-container">
-            <label for="modalFiltroSemaforo"><i class="fas fa-filter"></i> Filtrar por Antigüedad:</label>
+            <label for="modalFiltroSemaforo"><i class="fas fa-filter"></i> Filtrar Gráficas por Antigüedad:</label>
             <select id="modalFiltroSemaforo">
                 <option value="todos">Mostrar Todas las Órdenes</option>
                 <option value="verde">Solo Verde (< 15 días)</option>
@@ -132,7 +133,7 @@
                 <div class="chart-wrapper"><canvas id="chartAsesores"></canvas></div>
             </div>
             <div class="chart-details-box">
-                <p class="hint-text">(Haz clic en las filas de las tablas para ver el detalle filtrado)</p>
+                <p class="hint-text">(Haz clic en las filas para ver detalle filtrado)</p>
                 <div class="detail-section">
                     <h4>Desglose por Seguimiento</h4>
                     <div id="tableEstatusContainer"></div>
@@ -162,7 +163,7 @@
 </div>
 
 <!-- Firma Oculta -->
-<div style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: #94a3b8; opacity: 0.5; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">EMM</div>
+<div style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: var(--grey); opacity: 0.3; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">EMM</div>
 
 </body>
 </html>
