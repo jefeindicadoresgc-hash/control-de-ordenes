@@ -5,17 +5,19 @@
     <title>Control de Órdenes - Hyundai Coatza</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Librería Excel e Íconos -->
+    <!-- Librerías Externas -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     
     <!-- Firebase -->
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- CSS y JS (Forzando la versión 6 para recuperar los comentarios) -->
-    <link rel="stylesheet" href="styles.css?v=6">
-    <script src="app.js?v=6" defer></script>
+    <!-- Nuestro CSS y JS (Actualizado a v5 para evitar problemas de caché) -->
+    <link rel="stylesheet" href="styles.css?v=5">
+    <script src="app.js?v=5" defer></script>
 </head>
 <body>
 
@@ -27,7 +29,7 @@
         <p>Hyundai Coatzacoalcos | Ingresa tu clave</p>
         <input type="password" id="pass-input" placeholder="Contraseña">
         <button id="btn-login">Ingresar</button>
-        <p id="login-error">Contraseña incorrecta o usuario no existe.</p>
+        <p id="login-error">Contraseña o rol incorrecto. Intenta de nuevo.</p>
     </div>
 </div>
 
@@ -37,12 +39,12 @@
         <div class="header-left">
             <div class="header-brand">
                 <h1>Control de Órdenes</h1>
-                <span>Hyundai Coatzacoalcos | <span id="fecha-hoy"></span> | Usuario: <strong id="usuario-activo"></strong></span>
+                <span>Hyundai Coatzacoalcos | <span id="fecha-hoy"></span></span>
             </div>
         </div>
         
         <div class="header-actions">
-            <!-- Funciones Administrativas -->
+            <!-- Solo visible para ADMIN (YCA0) -->
             <div class="upload-info" id="caja-cargar-excel">
                 <label class="btn btn-upload">
                     <i class="fas fa-upload"></i> Cargar Excel
@@ -51,7 +53,6 @@
                 <div class="sync-status">Última carga: <span id="ultima-carga-fecha">Buscando en la nube...</span></div>
             </div>
             
-            <button class="btn btn-save" id="btn-settings" style="background-color: var(--dark-grey); display: none;"><i class="fas fa-users-cog"></i> Ajustes</button>
             <button class="btn btn-save" id="btn-sync"><i class="fas fa-cloud"></i> Sincronizado</button>
             <button class="btn btn-excel" id="btn-export"><i class="fas fa-file-excel"></i> Exportar</button>
         </div>
@@ -96,7 +97,7 @@
     <div id="dashboard" class="grid-container"></div>
 </div>
 
-<!-- LISTAS DESPLEGABLES -->
+<!-- LISTAS DESPLEGABLES INVISIBLES -->
 <datalist id="list-comentarios"></datalist>
 <datalist id="list-observaciones"></datalist>
 
@@ -112,13 +113,13 @@
     </div>
 </div>
 
-<!-- MODAL DE ANÁLISIS (SIN CANVAS) -->
+<!-- MODAL DE ANÁLISIS (GRÁFICAS) -->
 <div id="kpiModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" id="btn-close-modal">&times;</span>
-        <h2 id="modalTitle" class="modal-title">Desglose de Datos</h2>
+        <h2 id="modalTitle" class="modal-title">Análisis</h2>
         <div class="filtro-semaforo-container">
-            <label for="modalFiltroSemaforo"><i class="fas fa-filter"></i> Filtrar por Antigüedad:</label>
+            <label for="modalFiltroSemaforo"><i class="fas fa-filter"></i> Filtrar Gráficas por Antigüedad:</label>
             <select id="modalFiltroSemaforo">
                 <option value="todos">Mostrar Todas las Órdenes</option>
                 <option value="verde">Solo Verde (< 15 días)</option>
@@ -127,26 +128,28 @@
             </select>
         </div>
         <div id="modalMainView" class="modal-body-main">
-            <div class="chart-details-box" style="grid-column: span 2;">
-                <p class="hint-text" style="text-align: left; margin-bottom: 10px;">(Haz clic en las filas para ver detalle filtrado)</p>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
-                    <div class="detail-section">
-                        <h4>Desglose por Seguimiento</h4>
-                        <div id="tableEstatusContainer"></div>
-                    </div>
-                    <div class="detail-section">
-                        <h4 style="border-color: var(--green);">Desglose por Comentarios</h4>
-                        <div id="tableObservacionesContainer"></div>
-                    </div>
-                    <div class="detail-section">
-                        <h4 style="border-color: var(--h-blue);">Desglose por Asesor</h4>
-                        <div id="tableAsesorContainer"></div>
-                    </div>
+            <div class="chart-box">
+                <h4>Carga por Asesor</h4>
+                <div class="chart-wrapper"><canvas id="chartAsesores"></canvas></div>
+            </div>
+            <div class="chart-details-box">
+                <p class="hint-text">(Haz clic en las filas para ver detalle filtrado)</p>
+                <div class="detail-section">
+                    <h4>Desglose por Seguimiento</h4>
+                    <div id="tableEstatusContainer"></div>
+                </div>
+                <div class="detail-section">
+                    <h4 class="border-green">Desglose por Comentarios</h4>
+                    <div id="tableObservacionesContainer"></div>
+                </div>
+                <div class="detail-section">
+                    <h4 class="border-blue">Desglose por Asesor</h4>
+                    <div id="tableAsesorContainer"></div>
                 </div>
             </div>
         </div>
         <div id="modalDetailView" class="modal-body-detail">
-            <button class="btn-back" id="btn-back-modal"><i class="fas fa-arrow-left"></i> Volver al Desglose</button>
+            <button class="btn-back" id="btn-back-modal"><i class="fas fa-arrow-left"></i> Volver a Gráficas</button>
             <div class="email-header modal-detail-header">
                 <h3 id="detalleTitulo" class="txt-money">Detalle Filtrado</h3>
                 <div class="flex-gap">
@@ -159,46 +162,7 @@
     </div>
 </div>
 
-<!-- MODAL DE AJUSTES (USUARIOS) -->
-<div id="settingsModal" class="modal">
-    <div class="modal-content" style="max-width: 800px;">
-        <span class="close-modal" id="btn-close-settings">&times;</span>
-        <h2 class="modal-title"><i class="fas fa-users-cog"></i> Gestión de Usuarios (Firebase)</h2>
-        
-        <div class="settings-form" style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; padding: 20px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border-color);">
-            <div><label class="form-label">Contraseña / Código</label><input type="text" id="set-pass" class="form-input" placeholder="Ej. YCD3"></div>
-            <div><label class="form-label">Nombre Real del Usuario</label><input type="text" id="set-nombre" class="form-input" placeholder="Ej. Juan Pérez"></div>
-            <div>
-                <label class="form-label">Rol del Sistema</label>
-                <select id="set-rol" class="form-input">
-                    <option value="Administrador">Administrador</option>
-                    <option value="Asesor">Asesor (Standard)</option>
-                    <option value="Visor">Visor (Solo Lectura)</option>
-                </select>
-            </div>
-            <div>
-                <label class="form-label">Departamentos Permitidos (Edición)</label>
-                <div style="display:flex; gap:10px; margin-top:5px; flex-wrap:wrap; font-size: 0.9em; font-weight: bold;">
-                    <label><input type="checkbox" class="chk-sec" value="S"> Siniestros (S)</label>
-                    <label><input type="checkbox" class="chk-sec" value="A"> Siniestros (A)</label>
-                    <label><input type="checkbox" class="chk-sec" value="N"> Normales</label>
-                    <label><input type="checkbox" class="chk-sec" value="G"> Garantías</label>
-                    <label><input type="checkbox" class="chk-sec" value="V"> Ventas</label>
-                    <label><input type="checkbox" class="chk-sec" value="I"> Internas</label>
-                </div>
-            </div>
-            <button class="btn btn-upload" style="grid-column: span 2;" id="btn-save-user"><i class="fas fa-save"></i> Guardar Usuario en la Nube</button>
-        </div>
-
-        <table class="track-table">
-            <thead>
-                <tr><th>Código (Contraseña)</th><th>Nombre</th><th>Rol</th><th>Secciones</th><th>Acción</th></tr>
-            </thead>
-            <tbody id="tabla-usuarios-body"></tbody>
-        </table>
-    </div>
-</div>
-
+<!-- Firma Oculta -->
 <div style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: var(--grey); opacity: 0.3; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">EMM</div>
 
 </body>
