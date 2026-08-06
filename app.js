@@ -48,7 +48,6 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById('btn-export-detail').addEventListener('click', exportarDetalleAExcel);
     document.getElementById('modalFiltroSemaforo').addEventListener('change', aplicarFiltroModal);
 
-    // NUEVO: Funciones de Ajustes (Panel de Usuarios)
     document.getElementById('btn-settings').addEventListener('click', abrirAjustes);
     document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('settingsModal').style.display = 'none');
     document.getElementById('btn-save-user').addEventListener('click', guardarUsuario);
@@ -82,18 +81,16 @@ function getPastelColor(texto) {
 }
 
 // ==========================================
-// LOGIN CON FIREBASE Y SUPER ADMIN
+// LOGIN
 // ==========================================
 function verificarPassword() {
     let input = document.getElementById('pass-input').value.trim();
     if(input === "") return;
     
-    // Reiniciar variables
     IS_ADMIN = false;
     ALLOWED_SECTIONS = [];
     USER_NAME = '';
     
-    // Contraseña Maestra (Super Administrador)
     if (input === '2099') {
         USER_ROLE = 'Administrador';
         IS_ADMIN = true;
@@ -103,7 +100,6 @@ function verificarPassword() {
         return;
     } 
     
-    // Validar contraseña contra Base de Datos en Firebase
     database.ref('usuarios/' + input).once('value').then((snapshot) => {
         if (snapshot.exists()) {
             let u = snapshot.val();
@@ -145,8 +141,10 @@ function iniciarApp() {
     iniciarConexionNube();
 }
 
+// ==========================================
+// FIREBASE CONEXIÓN
+// ==========================================
 function iniciarConexionNube() {
-    // Suscripción al Excel
     database.ref('excel_compartido').on('value', (snapshot) => {
         let datosEnNube = snapshot.val();
         if (datosEnNube && datosEnNube.datos_json) {
@@ -169,7 +167,6 @@ function iniciarConexionNube() {
         }
     });
 
-    // Suscripción a Notas
     database.ref('notas').on('value', (snapshot) => {
         DB_NOTAS_COMPARTIDAS = snapshot.val() || {};
         actualizarListasDesplegables();
@@ -180,7 +177,6 @@ function iniciarConexionNube() {
         }
     });
 
-    // Suscripción a Usuarios
     database.ref('usuarios').on('value', (snapshot) => {
         DB_USUARIOS = snapshot.val() || {};
         renderizarTablaUsuarios();
@@ -203,15 +199,12 @@ function cargarExcelNube(e) {
 }
 
 // ==========================================
-// GESTIÓN DE USUARIOS (AJUSTES)
+// USUARIOS (AJUSTES)
 // ==========================================
 function abrirAjustes() {
     let pwd = prompt("Acceso Restringido. Ingrese la contraseña maestra (Súper Administrador):");
-    if(pwd === '2099') {
-        document.getElementById('settingsModal').style.display = 'block';
-    } else {
-        alert("Contraseña incorrecta. Acceso denegado.");
-    }
+    if(pwd === '2099') { document.getElementById('settingsModal').style.display = 'block'; } 
+    else { alert("Contraseña incorrecta. Acceso denegado."); }
 }
 
 function guardarUsuario() {
@@ -222,9 +215,7 @@ function guardarUsuario() {
 
     if(!pass || !nombre) { alert("La contraseña y el nombre son obligatorios."); return; }
     
-    database.ref('usuarios/' + pass).set({
-        nombre: nombre, rol: rol, secciones: secciones
-    }).then(() => {
+    database.ref('usuarios/' + pass).set({ nombre: nombre, rol: rol, secciones: secciones }).then(() => {
         mostrarToast("Usuario guardado correctamente");
         document.getElementById('set-pass').value = '';
         document.getElementById('set-nombre').value = '';
@@ -248,28 +239,22 @@ function renderizarTablaUsuarios() {
         let u = DB_USUARIOS[pwd];
         let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
         tbody.innerHTML += `<tr>
-            <td><strong>${pwd}</strong></td>
-            <td>${u.nombre}</td>
-            <td>${u.rol}</td>
-            <td>${secStr}</td>
+            <td><strong>${pwd}</strong></td><td>${u.nombre}</td><td>${u.rol}</td><td>${secStr}</td>
             <td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')"><i class="fas fa-trash"></i></button></td>
         </tr>`;
     }
 }
 
 // ==========================================
-// GUARDAR Y LEER NOTAS
+// GUARDAR Y LEER NOTAS (MÉTODO ORIGINAL RESTAURADO)
 // ==========================================
 window.guardarDatosNota = function(orden, campo, valor) {
     let letraOrden = orden.charAt(0).toUpperCase();
 
-    // 1. Reglas estrictas: 'comentario' = SEGUIMIENTO | 'observaciones' = COMENTARIOS
-    if (campo === 'comentario') {
-        if (!IS_ADMIN) {
-            mostrarToast("Solo el Administrador puede modificar el Seguimiento.", "fa-lock");
-            renderizarTablaSeccion(letraOrden);
-            return;
-        }
+    if (campo === 'comentario' && !IS_ADMIN) {
+        mostrarToast("Solo el Administrador puede modificar el Seguimiento.", "fa-lock");
+        renderizarTablaSeccion(letraOrden);
+        return;
     } else if (campo === 'observaciones') {
         let canEdit = IS_ADMIN || ALLOWED_SECTIONS.includes(letraOrden);
         if (!canEdit) {
@@ -281,21 +266,19 @@ window.guardarDatosNota = function(orden, campo, valor) {
 
     let fechaActual = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
     
-    let updates = {};
-    updates['notas/' + orden + '/' + campo] = valor;
-    updates['notas/' + orden + '/fecha'] = fechaActual;
+    // Método original de guardado para evitar conflictos
+    database.ref('notas/' + orden + '/' + campo).set(valor);
+    database.ref('notas/' + orden + '/fecha').set(fechaActual);
     
-    // Si modificaron los comentarios, registramos el nombre del autor
     if (campo === 'observaciones') {
-        updates['notas/' + orden + '/modificado_por'] = USER_NAME;
+        database.ref('notas/' + orden + '/modificado_por').set(USER_NAME || 'Administrador');
     }
-
-    database.ref().update(updates);
 };
 
 function leerDatosNota(orden) {
     if (DB_NOTAS_COMPARTIDAS && DB_NOTAS_COMPARTIDAS[orden]) {
         let n = DB_NOTAS_COMPARTIDAS[orden];
+        // Lee los campos originales tal como estaban en tu código viejo
         return { 
             comentario: n.comentario || '', 
             observaciones: n.observaciones || '', 
@@ -412,7 +395,6 @@ function renderizarTablaSeccion(key) {
 
     let styleFiltro = (FILTROS_POR_SECCION[key] || new Set()).size > 0 ? "color: var(--yellow); font-size: 1.2em; transform: scale(1.1);" : "";
 
-    // Permisos Dinámicos por Celda
     let inputStateSeguimiento = IS_ADMIN ? '' : 'readonly disabled style="background:var(--bg); cursor:not-allowed;" title="Solo Administrador"';
     let inputStateComentarios = (IS_ADMIN || ALLOWED_SECTIONS.includes(key)) ? '' : 'readonly disabled style="background:var(--bg); cursor:not-allowed;" title="Sin permisos"';
 
@@ -445,7 +427,7 @@ function renderizarTablaSeccion(key) {
 }
 
 // ==========================================
-// FILTROS, MODALES Y EXPORTACIÓN
+// FILTROS Y MODALES
 // ==========================================
 function actualizarBannerFiltros() {
     let banner = document.getElementById('active-filters-banner');
