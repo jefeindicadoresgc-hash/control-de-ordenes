@@ -1,160 +1,276 @@
-/* ==========================================
-   SECCIÓN 1: VARIABLES Y BASE
-   ========================================== */
-:root {
-    --h-blue: #002c5f; 
-    --h-light: #00aad2; 
-    --bg: #f8fafc;
-    --red: #dc2626; 
-    --yellow: #d97706; 
-    --green: #16a34a; 
-    --grey: #64748b;
-    --dark-grey: #1e293b;
-    --card-bg: #ffffff;
-    --border-color: #cbd5e1;
-    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1);
+// ==========================================
+// SECCIÓN 1: CONFIGURACIÓN FIREBASE Y ESTADO
+// ==========================================
+const firebaseConfig = {
+    apiKey: "AIzaSyCNnyVRFkdclX8SFTbilAmC05cXy63Me64",
+    authDomain: "tablero-servicio-hyundai.firebaseapp.com",
+    databaseURL: "https://tablero-servicio-hyundai-default-rtdb.firebaseio.com",
+    projectId: "tablero-servicio-hyundai",
+    storageBucket: "tablero-servicio-hyundai.firebasestorage.app",
+    messagingSenderId: "455631253850",
+    appId: "1:455631253850:web:f9385b23ebb6c333a14363"
+};
+
+if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); }
+const database = firebase.database();
+
+let USER_ROLE = null, USER_NAME = null, IS_ADMIN = false, ALLOWED_SECTIONS = []; 
+let DB_NOTAS_COMPARTIDAS = {}, DB_USUARIOS = {}, DATOS_GLOBALES = null, RAW_EXCEL_DATA = null;
+let CURRENT_SECTION_KEY = null, SORT_STATE = {}, FILTROS_POR_SECCION = {}, ACTIVE_FILTER_SECTION = null; 
+
+const moneyFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
+
+// ==========================================
+// SECCIÓN 2: EVENTOS DOM Y UI
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    document.getElementById('btn-login').addEventListener('click', verificarPassword);
+    document.getElementById('pass-input').addEventListener("keypress", (e) => { if (e.key === "Enter") { e.preventDefault(); verificarPassword(); } });
+
+    document.getElementById('btn-sync').addEventListener('click', () => mostrarToast("Datos sincronizados en tiempo real.", "fa-cloud"));
+    document.getElementById('btn-export').addEventListener('click', exportarAExcel);
+    document.getElementById('input-excel').addEventListener('change', cargarExcelNube);
+
+    document.getElementById('btn-clear-filters').addEventListener('click', limpiarFiltrosFlotantes);
+    document.getElementById('btn-copy-summary').addEventListener('click', copiarTabla);
+    document.getElementById('btn-close-filter').addEventListener('click', cerrarMenuFiltro);
+    document.getElementById('btn-apply-filter').addEventListener('click', aplicarFiltroFlotante);
+
+    document.getElementById('btn-close-modal').addEventListener('click', cerrarModal);
+    document.getElementById('btn-back-modal').addEventListener('click', volverVistaPrincipal);
+    document.getElementById('btn-copy-detail').addEventListener('click', copiarTablaDetalle);
+    document.getElementById('btn-export-detail').addEventListener('click', exportarDetalleAExcel);
+    document.getElementById('modalFiltroSemaforo').addEventListener('change', aplicarFiltroModal);
+
+    document.getElementById('btn-settings').addEventListener('click', abrirAjustes);
+    document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('settingsModal').style.display = 'none');
+    document.getElementById('btn-save-user').addEventListener('click', guardarUsuario);
+
+    window.onclick = function(e) { 
+        if (e.target == document.getElementById('kpiModal')) cerrarModal(); 
+        if (e.target == document.getElementById('settingsModal')) document.getElementById('settingsModal').style.display = 'none';
+        let menu = document.getElementById('floatingFilter'); 
+        if (menu.style.display === 'block' && !menu.contains(e.target) && !e.target.classList.contains('fa-filter')) { cerrarMenuFiltro(); }
+    };
+});
+
+function mostrarToast(mensaje, icono = 'fa-check-circle') {
+    let toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = `<i class="fas ${icono}"></i> ${mensaje}`;
+    document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
 }
-body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg); margin: 0; padding: 20px; color: var(--dark-grey); }
-.container { max-width: 1600px; margin: 0 auto; display: none; }
 
-/* ==========================================
-   SECCIÓN 2: PANTALLA LOGIN (ANIMACIONES ROJAS)
-   ========================================== */
-#login-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #080000; z-index: 10000; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+function getPastelColor(texto) {
+    if (!texto || texto.trim() === "") return ''; 
+    let hash = 0; texto = texto.toLowerCase().trim();
+    for (let i = 0; i < texto.length; i++) { hash = texto.charCodeAt(i) + ((hash << 5) - hash); }
+    return `hsl(${Math.abs(hash) % 360}, 40%, 97%)`; 
+}
 
-.uiverse-title-pattern { --reset-time: 10s; position: absolute; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: "Garamond", "Times New Roman", Times, serif; user-select: none; }
-.bg-glow { position: absolute; top: 50%; left: 50%; width: 32rem; height: 32rem; background: radial-gradient(circle, rgba(180, 0, 0, 0.18) 0%, transparent 62%); transform: translate(-50%, -50%); animation: glowBreathing 6s ease-in-out infinite alternate; pointer-events: none; z-index: 1; }
-.bg-noise { position: absolute; inset: 0; background-image: radial-gradient(rgba(255, 0, 0, 0.1) 1px, transparent 1px), radial-gradient(rgba(255, 0, 0, 0.05) 1px, transparent 1px); background-size: 20px 20px, 15px 15px; background-position: 0 0, 7.5px 7.5px; opacity: 0.3; z-index: 2; pointer-events: none; animation: noiseJitter 0.4s infinite; }
-.dust-layer { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
-.dust-layer::before { content: ""; position: absolute; width: 2px; height: 2px; background: transparent; box-shadow: 3rem 4rem 1px rgba(255, 0, 0, 0.6), 9rem 16rem 1px rgba(255, 0, 0, 0.4), 18rem 7rem 1px rgba(255, 0, 0, 0.8), 25rem 14rem 1px rgba(255, 0, 0, 0.5); animation: dustDrift 20s linear infinite; }
+// ==========================================
+// SECCIÓN 3: AUTENTICACIÓN
+// ==========================================
+function verificarPassword() {
+    let input = document.getElementById('pass-input').value.trim();
+    if(input === "") return;
+    
+    IS_ADMIN = false; ALLOWED_SECTIONS = []; USER_NAME = '';
+    
+    if (input === '2099') {
+        USER_ROLE = 'Administrador'; IS_ADMIN = true; USER_NAME = 'Súper Administrador (2099)'; ALLOWED_SECTIONS = ['A', 'S', 'N', 'V', 'G', 'I']; 
+        iniciarApp(); return;
+    } 
+    
+    database.ref('usuarios/' + input).once('value').then((snapshot) => {
+        if (snapshot.exists()) {
+            let u = snapshot.val(); USER_ROLE = u.rol; USER_NAME = u.nombre; IS_ADMIN = (u.rol === 'Administrador'); ALLOWED_SECTIONS = u.secciones || [];
+            iniciarApp();
+        } else {
+            document.getElementById('login-error').style.display = 'block';
+            setTimeout(() => document.getElementById('login-error').style.display = 'none', 3000);
+        }
+    }).catch(err => alert("Error de red: " + err.message));
+}
 
-.title-stage { position: relative; z-index: 10; display: flex; flex-direction: column; align-items: center; transform: scale(0.78); transition: transform 0.5s cubic-bezier(0.2, 0.8, 0.2, 1); margin-bottom: 2rem;}
-.uiverse-title-pattern:hover .title-stage { transform: scale(0.82); }
+function iniciarApp() {
+    document.getElementById('login-overlay').style.display = 'none';
+    document.getElementById('main-app').style.display = 'block';
+    document.getElementById('usuario-activo').innerText = USER_NAME;
+    
+    if (IS_ADMIN) {
+        document.getElementById('caja-cargar-excel').style.display = 'flex'; document.getElementById('btn-settings').style.display = 'block';
+        mostrarToast(`Sesión iniciada: Modo Administrador`, "fa-user-shield");
+    } else {
+        document.getElementById('caja-cargar-excel').style.display = 'none'; document.getElementById('btn-settings').style.display = 'none';
+        mostrarToast(`Sesión iniciada: ${USER_NAME}`, "fa-user-edit");
+    }
 
-.main-title, .sub-title { display: flex; justify-content: center; align-items: baseline; margin: 0; padding: 0; text-transform: uppercase; color: transparent; line-height: 0.9; }
-.main-title { font-size: clamp(2.8rem, 5.5rem, 6.5rem); letter-spacing: -0.05em; margin-bottom: 0.1em; }
-.sub-title { font-size: clamp(1.3rem, 2.8rem, 3.2rem); letter-spacing: 0.2em; margin-bottom: 0.5em; }
+    try { let fg = localStorage.getItem('hyundai_filtros_seccion'); if (fg) { let p = JSON.parse(fg); for (let k in p) { FILTROS_POR_SECCION[k] = new Set(p[k]); } } } catch (e) {}
+    iniciarConexionNube();
+}
 
-.letter { position: relative; display: inline-block; opacity: 0; filter: blur(12px); transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1.5); -webkit-text-stroke: 2px #f00; text-shadow: 0 0 5px rgba(255, 0, 0, 0.8), 0 0 15px rgba(255, 0, 0, 0.6), 0 0 30px rgba(200, 0, 0, 0.4); animation: letterIntro var(--reset-time) cubic-bezier(0.2, 0.8, 0.2, 1) infinite, neonFlicker var(--reset-time) linear infinite; animation-delay: var(--d), 0s; }
-.letter::before, .letter::after { content: attr(data-char); position: absolute; top: 0; left: 0; color: transparent; pointer-events: none; }
-.letter::before { -webkit-text-stroke: 1px rgba(255, 50, 50, 0.7); transform: translate(2px, -2px) rotate(-1.5deg); z-index: -1; animation: sketchJitter 0.18s infinite alternate; }
-.letter::after { -webkit-text-stroke: 1px rgba(200, 0, 0, 0.5); transform: translate(-2px, 1px) rotate(1.5deg); z-index: -2; animation: sketchJitter2 0.2s infinite alternate; }
+// ==========================================
+// SECCIÓN 4: CONEXIÓN FIREBASE
+// ==========================================
+function iniciarConexionNube() {
+    database.ref('excel_compartido').on('value', (snapshot) => {
+        let datosEnNube = snapshot.val();
+        if (datosEnNube && datosEnNube.datos_json) {
+            try {
+                RAW_EXCEL_DATA = JSON.parse(datosEnNube.datos_json);
+                document.getElementById('ultima-carga-fecha').innerText = datosEnNube.fecha_subida;
+                document.getElementById('empty-state').style.display = 'none';
+                document.getElementById('summary-panel').style.display = 'grid';
+                document.getElementById('email-section').style.display = 'block';
+                document.getElementById('dashboard').style.display = 'grid';
+                analizarDatos(RAW_EXCEL_DATA);
+            } catch(e) { console.error("Error al procesar Excel", e); }
+        } else {
+            document.getElementById('empty-state').style.display = 'block'; document.getElementById('summary-panel').style.display = 'none';
+            document.getElementById('email-section').style.display = 'none'; document.getElementById('dashboard').style.display = 'none';
+            if(IS_ADMIN) document.getElementById('ultima-carga-fecha').innerText = "Esperando Excel";
+        }
+    });
 
-.neon-line { position: relative; width: 0%; height: 2px; background: transparent; margin: 0.5em 0; display: flex; align-items: center; justify-content: center; animation: lineReveal var(--reset-time) cubic-bezier(0.8, 0, 0.2, 1) infinite; }
-.neon-line-inner { width: 100%; height: 100%; border-top: 1px solid #f00; border-bottom: 1px solid #f00; box-shadow: 0 0 5px #f00, 0 0 10px #f00, 0 0 20px #a00, inset 0 0 2px #f00; }
-.caption { font-family: sans-serif; font-size: 0.8rem; color: #ff3333; letter-spacing: 0.4em; text-transform: uppercase; margin-top: 2em; opacity: 0; text-shadow: 0 0 5px #f00; animation: captionFade var(--reset-time) infinite; }
+    database.ref('notas').on('value', (snapshot) => {
+        DB_NOTAS_COMPARTIDAS = snapshot.val() || {}; actualizarListasDesplegables();
+        if (DATOS_GLOBALES) {
+            for (let orden in DB_NOTAS_COMPARTIDAS) {
+                let n = DB_NOTAS_COMPARTIDAS[orden];
+                let inCom = document.getElementById('comentario-' + orden), inObs = document.getElementById('obs-' + orden);
+                let tdAutor = document.getElementById('autor-' + orden), tdFecha = document.getElementById('date-' + orden), trRow = document.getElementById('row-' + orden);
+                if (inCom && document.activeElement !== inCom) inCom.value = n.comentario || '';
+                if (inObs && document.activeElement !== inObs) inObs.value = n.observaciones || '';
+                if (tdAutor) tdAutor.innerHTML = `<small style="font-weight: bold; color: var(--h-blue);">${n.modificado_por || '-'}</small>`;
+                if (tdFecha) tdFecha.innerText = n.fecha || '';
+                if (trRow && n.comentario) trRow.style.backgroundColor = getPastelColor(n.comentario);
+            }
+        }
+    });
 
-@keyframes letterIntro { 0% { opacity: 0; filter: blur(12px); transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1.5); } 30%, 68% { opacity: 1; filter: blur(0); transform: translate(0, 0) rotate(0deg) scale(1); } 92%, 100% { opacity: 0; filter: blur(12px); transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1.5); } }
-@keyframes lineReveal { 0%, 16% { width: 0%; opacity: 0; } 36%, 68% { width: 110%; opacity: 1; } 84%, 100% { width: 0%; opacity: 0; } }
-@keyframes captionFade { 0%, 36% { opacity: 0; } 48%, 68% { opacity: 0.8; } 84%, 100% { opacity: 0; } }
-@keyframes glowBreathing { 0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; } 100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } }
-@keyframes neonFlicker { 0%, 30%, 62%, 100% { opacity: 1; } 20%, 64% { opacity: 0.35; } 92%, 100% { opacity: 0; } }
-@keyframes sketchJitter { 0% { transform: translate(2px, -2px) rotate(-1.5deg); } 100% { transform: translate(3px, -1px) rotate(-1deg); } }
+    database.ref('usuarios').on('value', (snapshot) => { DB_USUARIOS = snapshot.val() || {}; renderizarTablaUsuarios(); });
+}
 
-/* ==========================================
-   SECCIÓN 3: INPUT CYBERPUNK (TEMA ROJO)
-   ========================================== */
-.login-hologram { z-index: 20; position: relative; display: flex; flex-direction: column; align-items: center; }
-.neon-error { color: #ff3333; font-weight: bold; text-shadow: 0 0 10px #ff3333; position: absolute; bottom: -35px; display: none; font-size: 0.9em; letter-spacing: 2px;}
+function cargarExcelNube(e) {
+    let archivo = e.target.files[0]; if(!archivo) return;
+    let reader = new FileReader();
+    reader.onload = function(e) {
+        let data = new Uint8Array(e.target.result), workbook = XLSX.read(data, {type: 'array'});
+        let json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval:""});
+        let dateStr = new Date().toLocaleDateString('es-MX') + ' ' + new Date().toLocaleTimeString('es-MX', {hour: '2-digit', minute:'2-digit'});
+        document.getElementById('ultima-carga-fecha').innerText = "Subiendo archivo...";
+        database.ref('excel_compartido').set({ fecha_subida: dateStr, datos_json: JSON.stringify(json) }).then(() => mostrarToast("Archivo cargado.", "fa-cloud-upload-alt")).catch(err => alert("Fallo al subir: " + err.message));
+    }; reader.readAsArrayBuffer(archivo);
+}
 
-.white, .border, .darkBorderBg, .glow { max-height: 70px; max-width: 314px; height: 100%; width: 100%; position: absolute; overflow: hidden; z-index: -1; border-radius: 12px; filter: blur(3px); }
-.input { background-color: #050000; border: none; width: 301px; height: 56px; border-radius: 10px; color: white; padding-inline: 59px; font-size: 18px; letter-spacing: 2px; text-align: center; border: 1px solid #330000;}
-.input::placeholder { color: #888; letter-spacing: normal; font-size: 15px;}
-.input:focus { outline: none; border-color: #f00;}
+// ==========================================
+// SECCIÓN 5: LÓGICA DE TABLEROS Y EXPORTACIÓN
+// ==========================================
+window.guardarDatosNota = function(orden, campo, valor) {
+    orden = orden.toUpperCase().trim(); let letraOrden = orden.charAt(0);
+    if (campo === 'comentario' && !IS_ADMIN) { mostrarToast("Solo Admin edita Seguimiento.", "fa-lock"); renderizarTablaSeccion(letraOrden); return; }
+    if (campo === 'observaciones' && !IS_ADMIN && !ALLOWED_SECTIONS.includes(letraOrden)) { mostrarToast("Sin permisos aquí.", "fa-lock"); renderizarTablaSeccion(letraOrden); return; }
 
-#poda { display: flex; align-items: center; justify-content: center; position: relative; }
-#main { position: relative; }
-#main:focus-within > #input-mask { display: none; }
-#input-mask { pointer-events: none; width: 100px; height: 20px; position: absolute; background: linear-gradient(90deg, transparent, #050000); top: 18px; left: 70px; }
-#pink-mask { pointer-events: none; width: 30px; height: 20px; position: absolute; background: #ff0000; top: 10px; left: 5px; filter: blur(20px); opacity: 0.6; transition: all 2s; }
-#main:hover > #pink-mask { opacity: 0; }
+    let updates = {}; updates['notas/' + orden + '/' + campo] = valor;
+    updates['notas/' + orden + '/fecha'] = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    if (campo === 'observaciones') { updates['notas/' + orden + '/modificado_por'] = USER_NAME; }
+    database.ref().update(updates).then(() => mostrarToast("Guardado", "fa-check"));
+};
 
-.white { max-height: 63px; max-width: 307px; border-radius: 10px; filter: blur(2px); }
-.white::before { content: ""; z-index: -2; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(83deg); position: absolute; width: 600px; height: 600px; filter: brightness(1.4); background-image: conic-gradient( rgba(0, 0, 0, 0) 0%, #ff6666, rgba(0, 0, 0, 0) 8%, rgba(0, 0, 0, 0) 50%, #ff0000, rgba(0, 0, 0, 0) 58% ); transition: all 2s; }
+function leerDatosNota(orden) {
+    if (DB_NOTAS_COMPARTIDAS && DB_NOTAS_COMPARTIDAS[orden]) { let n = DB_NOTAS_COMPARTIDAS[orden]; return { comentario: n.comentario || '', observaciones: n.observaciones || '', fecha: n.fecha || '', modificado_por: n.modificado_por || '' }; }
+    return { comentario: '', observaciones: '', fecha: '', modificado_por: '' };
+}
 
-.border { max-height: 59px; max-width: 303px; border-radius: 11px; filter: blur(0.5px); }
-.border::before { content: ""; z-index: -2; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(70deg); position: absolute; width: 600px; height: 600px; filter: brightness(1.3); background-image: conic-gradient( #110000, #aa0000 5%, #110000 14%, #110000 50%, #ff0000 60%, #110000 64% ); transition: all 2s; }
+function analizarDatos(datos) {
+    let secciones = { 'S': { titulo: 'Siniestros (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'N': { titulo: 'Normales', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'V': { titulo: 'Ventas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'I': { titulo: 'Internas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'G': { titulo: 'Garantías', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 } };
+    let global = { total: 0, ok: 0, warn: 0, alert: 0, dinero: 0, dineroAlert: 0 };
+    actualizarBannerFiltros(); 
 
-.darkBorderBg { max-height: 65px; max-width: 312px; }
-.darkBorderBg::before { content: ""; z-index: -2; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(82deg); position: absolute; width: 600px; height: 600px; background-image: conic-gradient( rgba(0, 0, 0, 0), #330000, rgba(0, 0, 0, 0) 10%, rgba(0, 0, 0, 0) 50%, #990000, rgba(0, 0, 0, 0) 60% ); transition: all 2s; }
+    datos.forEach(fila => {
+        let orden = String(fila['Orden'] || "").trim().toUpperCase(); if (orden.length <= 1) return;
+        let letra = orden.charAt(0); let sec = secciones[letra]; if (!sec) return;
+        let notas = leerDatosNota(orden); let estatusFiltro = notas.comentario ? notas.comentario.trim() : ""; if (estatusFiltro === "") estatusFiltro = "(Vacío)";
+        if ((FILTROS_POR_SECCION[letra] || new Set()).has(estatusFiltro)) return; 
 
-#poda:hover > .darkBorderBg::before { transform: translate(-50%, -50%) rotate(-98deg); }
-#poda:hover > .glow::before { transform: translate(-50%, -50%) rotate(-120deg); }
-#poda:hover > .white::before { transform: translate(-50%, -50%) rotate(-97deg); }
-#poda:hover > .border::before { transform: translate(-50%, -50%) rotate(-110deg); }
-#poda:focus-within > .darkBorderBg::before { transform: translate(-50%, -50%) rotate(442deg); transition: all 4s; }
-#poda:focus-within > .glow::before { transform: translate(-50%, -50%) rotate(420deg); transition: all 4s; }
+        let dias = parseFloat(fila['Dias']) || 0; let importe = parseFloat(String(fila['Importe  S/iva '] || "0").replace(/[^0-9.-]+/g,"")) || 0;
+        let semaforo = dias >= 30 ? 'rojo' : (dias >= 15 ? 'amarillo' : 'verde');
 
-.glow { overflow: hidden; filter: blur(30px); opacity: 0.4; max-height: 130px; max-width: 354px; }
-.glow:before { content: ""; z-index: -2; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(60deg); position: absolute; width: 999px; height: 999px; background-image: conic-gradient( #000, #aa0000 5%, #000 38%, #000 50%, #ff0000 60%, #000 87% ); transition: all 2s; }
+        sec.ordenes.push({ orden, nombre: String(fila['Nombre'] || "Sin Nombre"), asesor: String(fila['Asesor'] || "No Asignado").replace(/^\d+\s*ASE-\s*/i, '').substring(0, 20), dias, importe, semaforo, comentario: notas.comentario, observaciones: notas.observaciones, autor: notas.modificado_por, fecha_mod: notas.fecha });
+        sec.total += importe; global.total++; global.dinero += importe;
+        if (semaforo === 'rojo') { sec.countAlert++; global.alert++; global.dineroAlert += importe; } else if (semaforo === 'amarillo') { sec.countWarn++; global.warn++; } else { sec.countOk++; global.ok++; }
+    });
 
-.login-submit-btn { position: absolute; top: 8px; right: 8px; display: flex; align-items: center; justify-content: center; z-index: 2; max-height: 40px; max-width: 38px; height: 100%; width: 100%; border-radius: 10px; cursor: pointer; background: linear-gradient(180deg, #330000, black, #110000); border: 1px solid transparent; transition: 0.2s; padding: 0; }
-.login-submit-btn:hover { background: linear-gradient(180deg, #660000, black, #ff0000); }
-.login-submit-btn:active { transform: scale(0.95); }
-#search-icon { position: absolute; left: 20px; top: 18px; pointer-events: none; }
+    DATOS_GLOBALES = secciones;
+    document.getElementById('kpi-total-ops').innerText = global.total; document.getElementById('kpi-ok-ops').innerText = global.ok; document.getElementById('kpi-warn-ops').innerText = global.warn; document.getElementById('kpi-alert-ops').innerText = global.alert;
+    document.getElementById('kpi-money').innerText = moneyFormat.format(global.dinero); document.getElementById('kpi-money-sub').innerHTML = `<span style="color:var(--red); font-weight:bold;">${moneyFormat.format(global.dineroAlert)}</span> crítico (≥ 30d)`;
+    generarTablaEmail(secciones); renderizarTablero(secciones);
+}
 
-/* ==========================================
-   SECCIÓN 4: CABECERA Y PANEL DE CONTROL
-   ========================================== */
-header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
-.header-brand h1 { margin: 0; color: var(--dark-grey); font-size: 1.8em; font-weight: 800; letter-spacing: -0.5px;}
-.header-brand span { color: var(--grey); font-weight: 500; font-size: 0.9em; }
-.header-actions { display: flex; gap: 15px; flex-wrap: wrap; align-items: center;}
+function generarTablaEmail(secciones) {
+    let html = `<table class="mini-summary-table" id="tabla-para-copiar"><thead><tr><th style="width:25%">Departamento</th><th>< 15 Días (Verde)</th><th>15-29 Días (Ama)</th><th>≥ 30 Días (Rojo)</th><th>Monto Total</th></tr></thead><tbody>`;
+    ['A', 'S', 'N', 'V', 'G', 'I'].forEach(k => { if (secciones[k].ordenes.length > 0) { html += `<tr><td>${secciones[k].titulo}</td><td class="bg-ok-light">${secciones[k].countOk}</td><td class="${secciones[k].countWarn > 0 ? 'bg-warn-light' : ''}">${secciones[k].countWarn}</td><td class="${secciones[k].countAlert > 0 ? 'bg-alert-light' : ''}">${secciones[k].countAlert}</td><td style="text-align:right; font-weight:bold;">${moneyFormat.format(secciones[k].total)}</td></tr>`; } });
+    document.getElementById('tabla-resumen-container').innerHTML = html + `</tbody></table>`;
+}
 
-.btn { padding: 8px 16px; border-radius: 4px; cursor: pointer; font-weight: 600; transition: all 0.2s; border: 1px solid transparent; display: flex; align-items: center; gap: 8px; font-size: 0.9em; }
-.btn-upload { background: var(--card-bg); color: var(--dark-grey); border-color: var(--border-color); justify-content: center;}
-.btn-upload:hover { background: var(--bg); }
-.btn-upload:disabled { opacity: 0.7; cursor: not-allowed; }
-.btn-save { background: #f0fdf4; color: var(--green); border-color: #bbf7d0; cursor: default; }
-.btn-excel { background: #217346; color: white; }
-.btn-excel:hover { background: #185c37; }
-.btn-outline-danger { background: white; color: var(--red); border: 1px solid var(--red); }
-.btn-delete { background: var(--red); color: white; padding: 4px 8px; border: none; border-radius: 4px; font-size: 0.8em; cursor: pointer; }
-#input-excel { display: none; }
-.upload-info { display: flex; flex-direction: column; align-items: center; }
-.sync-status { font-size: 0.8em; color: var(--grey); margin-top: 5px;}
+window.cambiarOrden = function(key, modo) { SORT_STATE[key] = modo; renderizarTablaSeccion(key); };
+window.toggleCard = function(id, event) { if (event.target.tagName === 'TH' || event.target.tagName === 'I' || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') return; document.getElementById(id).classList.toggle('collapsed'); };
 
-.empty-state { background: var(--card-bg); margin-top: 30px; padding: 60px 20px; border-radius: 8px; text-align: center; border: 1px solid var(--border-color); }
-.empty-icon { font-size: 3em; color: var(--border-color); margin-bottom: 15px; }
+function renderizarTablero(secciones) {
+    let container = document.getElementById('dashboard'); container.innerHTML = "";
+    ['A', 'S', 'N', 'V', 'G', 'I'].forEach(key => {
+        let sec = secciones[key]; if (sec.ordenes.length === 0) return; let cardId = `card-${key}`;
+        container.innerHTML += `<div class="card" id="${cardId}"><div class="card-header" onclick="toggleCard('${cardId}', event)"><div class="card-title">${sec.titulo} <small>(${sec.ordenes.length})</small></div><div style="font-weight:bold; color:var(--dark-grey);">${moneyFormat.format(sec.total)} <i class="fas fa-chevron-down chevron"></i></div></div><div class="card-content"><div class="breakdown-bar"><div class="bd-stats"><span class="bd-ok">Verde: ${sec.countOk}</span> <span class="bd-warn">Amarillo: ${sec.countWarn}</span> <span class="bd-alert">Rojo: ${sec.countAlert}</span></div><button class="btn-chart" onclick="abrirGraficas('${key}', '${sec.titulo}')"><i class="fas fa-list"></i> Ver Desglose</button></div><div class="table-responsive" id="table-container-${key}"></div></div></div>`;
+    });
+    ['A', 'S', 'N', 'V', 'G', 'I'].forEach(key => { if (secciones[key] && secciones[key].ordenes.length > 0) renderizarTablaSeccion(key); });
+}
 
-.summary-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 25px; display: none; }
-.kpi-card { background: var(--card-bg); padding: 20px; border-radius: 8px; border: 1px solid var(--border-color); border-top: 4px solid var(--border-color);}
-.kpi-card.total { border-top-color: var(--dark-grey); } .kpi-card.ok { border-top-color: var(--green); } .kpi-card.warn { border-top-color: var(--yellow); } .kpi-card.alert { border-top-color: var(--red); } .kpi-card.money { border-top-color: var(--h-blue); }
-.kpi-value { font-size: 2em; font-weight: 800; margin-top: 8px; color: var(--dark-grey);}
-.kpi-label { font-size: 0.8em; color: var(--grey); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px;}
+function renderizarTablaSeccion(key) {
+    let sec = DATOS_GLOBALES[key], sortMode = SORT_STATE[key] || 'dias'; 
+    if (sortMode === 'asesor') { sec.ordenes.sort((a, b) => { let cmp = a.asesor.localeCompare(b.asesor); return cmp !== 0 ? cmp : b.dias - a.dias; }); } else { sec.ordenes.sort((a, b) => b.dias - a.dias); }
 
-.filter-banner { background: #fef3c7; color: #92400e; padding: 15px 20px; border-radius: 4px; border: 1px solid #fde68a; margin-top: 20px; font-weight: 600; display: flex; justify-content: space-between; display: none; }
-.email-section { background: var(--card-bg); padding: 25px; margin-top: 25px; border-radius: 8px; border: 1px solid var(--border-color); display: none; }
-.email-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 15px;}
-.copy-btn { background: var(--card-bg); border: 1px solid var(--border-color); padding: 6px 12px; cursor: pointer; border-radius: 4px; font-weight: 600; }
-.table-responsive { overflow-x: auto; }
+    let styleFiltro = (FILTROS_POR_SECCION[key] || new Set()).size > 0 ? "color: var(--yellow); font-size: 1.2em; transform: scale(1.1);" : "";
+    let inSeg = IS_ADMIN ? '' : 'readonly disabled style="background:var(--bg); cursor:not-allowed;" title="Solo Administrador"';
+    let inObs = (IS_ADMIN || ALLOWED_SECTIONS.includes(key)) ? '' : 'readonly disabled style="background:var(--bg); cursor:not-allowed;" title="Sin permisos"';
 
-/* ==========================================
-   SECCIÓN 5: TABLAS, CELDAS Y MODALES
-   ========================================== */
-.mini-summary-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-.mini-summary-table th, .mini-summary-table td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
-.mini-summary-table th { background-color: #f1f5f9; color: var(--dark-grey); text-align: left; }
-.bg-alert-light { background-color: #fef2f2; color: var(--red); font-weight: 600; }
-.bg-warn-light { background-color: #fffbeb; color: var(--yellow); font-weight: 600; }
+    let html = `<table class="track-table"><thead><tr><th>Orden</th><th>Cliente</th><th class="th-sortable ${sortMode === 'asesor' ? 'active' : ''}" onclick="cambiarOrden('${key}', 'asesor')">Asesor <i class="fas fa-sort-alpha-down"></i></th><th class="th-sortable ${sortMode === 'dias' ? 'active' : ''}" style="text-align:center;" onclick="cambiarOrden('${key}', 'dias')">Días <i class="fas fa-sort-numeric-down"></i></th><th style="text-align:right;">Importe</th><th style="width: 15%; background-color:var(--bg);">Seguimiento <i class="fas fa-filter icon-filter" onclick="abrirMenuFiltroColumna(event, '${key}')" style="float:right; ${styleFiltro}"></i></th><th style="width: 20%;">Comentarios</th><th style="width: 15%;">Autor Comentario</th><th>Fecha Mod.</th></tr></thead><tbody>`;
 
-.grid-container { display: grid; grid-template-columns: 1fr; gap: 25px; margin-top: 30px; }
-.card { background: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); }
-.card-header { background: #f8fafc; padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
-.breakdown-bar { display: flex; padding: 12px 20px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); font-size: 0.9em; justify-content: space-between; }
-.btn-chart { background: var(--card-bg); color: var(--dark-grey); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+    sec.ordenes.forEach((item) => {
+        let badgeClass = item.semaforo === 'verde' ? 'badge-ok' : (item.semaforo === 'amarillo' ? 'badge-warn' : 'badge-alert');
+        html += `<tr id="row-${item.orden}" style="background-color:${getPastelColor(item.comentario)}"><td class="cell-orden">${item.orden}</td><td><span style="font-weight:normal; color:var(--grey); font-size:0.9em;">${item.nombre}</span></td><td><span class="asesor-name">${item.asesor}</span></td><td class="cell-dias" style="text-align:center;"><span class="badge-dias ${badgeClass}">${item.dias}</span></td><td class="cell-money">${moneyFormat.format(item.importe)}</td><td><input type="text" id="comentario-${item.orden}" class="comment-box" list="list-comentarios" placeholder="..." value="${item.comentario || ''}" onchange="guardarDatosNota('${item.orden}', 'comentario', this.value)" ${inSeg}></td><td><input type="text" id="obs-${item.orden}" class="comment-box" list="list-observaciones" placeholder="Añadir comentario..." value="${item.observaciones || ''}" onchange="guardarDatosNota('${item.orden}', 'observaciones', this.value)" ${inObs}></td><td id="autor-${item.orden}"><small style="font-weight: bold; color: var(--h-blue);">${item.autor || '-'}</small></td><td class="date-cell" id="date-${item.orden}">${item.fecha_mod || ''}</td></tr>`;
+    });
+    document.getElementById(`table-container-${key}`).innerHTML = html + `</tbody></table>`;
+}
 
-.track-table { width: 100%; border-collapse: collapse; font-size: 0.85em; min-width: 950px; }
-.track-table th { text-align: left; padding: 10px 12px; background-color: #f1f5f9; border: 1px solid var(--border-color); }
-.track-table td { padding: 8px 12px; border: 1px solid var(--border-color); }
-.badge-dias { padding: 2px 8px; border-radius: 4px; font-weight: 600; }
-.badge-ok { background: #dcfce7; color: #166534; } .badge-warn { background: #fef9c3; color: #854d0e; } .badge-alert { background: #fee2e2; color: #991b1b; }
-.comment-box { width: 100%; border: 1px solid transparent; padding: 6px; border-radius: 4px; background: transparent; }
-.comment-box:focus { border-color: var(--h-blue); background: white; outline: none; }
+// ==========================================
+// SECCIÓN 6: MODALES Y CONFIGURACIONES VARIAS
+// ==========================================
+function abrirAjustes() { let pwd = prompt("Acceso Restringido (Súper Administrador):"); if(pwd === '2099') { document.getElementById('settingsModal').style.display = 'block'; } else { alert("Acceso denegado."); } }
+function guardarUsuario() {
+    let pass = document.getElementById('set-pass').value.trim(), nombre = document.getElementById('set-nombre').value.trim(), rol = document.getElementById('set-rol').value, secciones = Array.from(document.querySelectorAll('.chk-sec:checked')).map(cb => cb.value);
+    if(!pass || !nombre) return;
+    database.ref('usuarios/' + pass).set({ nombre: nombre, rol: rol, secciones: secciones }).then(() => { mostrarToast("Usuario guardado"); document.getElementById('set-pass').value = ''; document.getElementById('set-nombre').value = ''; document.querySelectorAll('.chk-sec').forEach(cb => cb.checked = false); });
+}
+window.eliminarUsuario = function(pwd) { if(confirm("¿Eliminar usuario?")) { database.ref('usuarios/' + pwd).remove().then(() => mostrarToast("Usuario eliminado")); } };
+function renderizarTablaUsuarios() { let tbody = document.getElementById('tabla-usuarios-body'); if(!tbody) return; tbody.innerHTML = ''; for (let pwd in DB_USUARIOS) { let u = DB_USUARIOS[pwd]; tbody.innerHTML += `<tr><td><strong>${pwd}</strong></td><td>${u.nombre}</td><td>${u.rol}</td><td>${(u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna"}</td><td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')"><i class="fas fa-trash"></i></button></td></tr>`; } }
 
-.floating-filter-menu { position: absolute; background: white; border: 1px solid var(--border-color); box-shadow: var(--shadow-md); border-radius: 4px; z-index: 2000; width: 260px; }
-.toast { position: fixed; bottom: 20px; right: 20px; background-color: var(--dark-grey); color: #fff; padding: 12px 20px; border-radius: 4px; z-index: 9999; }
-.modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.7); }
-.modal-content { background-color: var(--card-bg); margin: 3% auto; padding: 25px; border: 1px solid var(--border-color); width: 95%; max-width: 1200px; border-radius: 8px; }
-.form-input { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; }
+window.abrirMenuFiltroColumna = function(event, sectionKey) { event.stopPropagation(); ACTIVE_FILTER_SECTION = sectionKey; document.getElementById('filter-section-title').innerText = DATOS_GLOBALES[sectionKey] ? DATOS_GLOBALES[sectionKey].titulo : sectionKey; let estatusSet = new Set(); RAW_EXCEL_DATA.forEach(fila => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1 && orden.charAt(0) === sectionKey) { estatusSet.add(leerDatosNota(orden).comentario ? leerDatosNota(orden).comentario.trim() : "(Vacío)"); } }); let contenedor = document.getElementById('floatingFilterList'); contenedor.innerHTML = `<label class="filter-item" style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px;"><input type="checkbox" id="chkAllFiltro" onchange="window.toggleAllFiltros(this)"><strong>(Seleccionar Todo)</strong></label>`; let seccionOcultos = FILTROS_POR_SECCION[sectionKey] || new Set(); Array.from(estatusSet).sort().forEach(est => { contenedor.innerHTML += `<label class="filter-item"><input type="checkbox" class="chk-filtro-item" value="${est}" ${seccionOcultos.has(est) ? "" : "checked"} onchange="window.updateChkAll()"><span>${est}</span></label>`; }); let menu = document.getElementById('floatingFilter'); menu.style.display = 'block'; menu.style.left = Math.max(10, event.pageX - 150) + "px"; menu.style.top = (event.pageY + 15) + "px"; window.updateChkAll(); }
+window.toggleAllFiltros = function(source) { document.querySelectorAll('.chk-filtro-item').forEach(chk => chk.checked = source.checked); }
+window.updateChkAll = function() { let chkAll = document.getElementById('chkAllFiltro'); if(chkAll) chkAll.checked = Array.from(document.querySelectorAll('.chk-filtro-item')).every(chk => chk.checked); }
+function cerrarMenuFiltro() { document.getElementById('floatingFilter').style.display = 'none'; ACTIVE_FILTER_SECTION = null; }
+function actualizarBannerFiltros() { let banner = document.getElementById('active-filters-banner'), total = 0, secs = []; for (let k in FILTROS_POR_SECCION) { if (FILTROS_POR_SECCION[k].size > 0) { total += FILTROS_POR_SECCION[k].size; secs.push(DATOS_GLOBALES[k] ? DATOS_GLOBALES[k].titulo : k); } } if (total > 0) { banner.style.display = 'flex'; document.getElementById('filtros-count').innerText = total; document.getElementById('filtros-seccion').innerText = secs.join(", "); } else { banner.style.display = 'none'; } }
+function aplicarFiltroFlotante() { if (!ACTIVE_FILTER_SECTION) return; FILTROS_POR_SECCION[ACTIVE_FILTER_SECTION] = new Set(); document.querySelectorAll('.chk-filtro-item').forEach(chk => { if (!chk.checked) FILTROS_POR_SECCION[ACTIVE_FILTER_SECTION].add(chk.value); }); localStorage.setItem('hyundai_filtros_seccion', JSON.stringify(Object.fromEntries(Object.entries(FILTROS_POR_SECCION).map(([k,v]) => [k, Array.from(v)])))); cerrarMenuFiltro(); if (RAW_EXCEL_DATA) analizarDatos(RAW_EXCEL_DATA); }
+function limpiarFiltrosFlotantes() { FILTROS_POR_SECCION = {}; localStorage.removeItem('hyundai_filtros_seccion'); if (RAW_EXCEL_DATA) analizarDatos(RAW_EXCEL_DATA); }
+
+window.abrirGraficas = function(key, titulo) { CURRENT_SECTION_KEY = key; document.getElementById('modalTitle').innerText = "Análisis: " + titulo; document.getElementById('kpiModal').style.display = "block"; document.getElementById('modalMainView').style.display = "block"; document.getElementById('modalDetailView').style.display = "none"; document.getElementById('modalFiltroSemaforo').value = 'todos'; aplicarFiltroModal(); }
+function aplicarFiltroModal() { let filtro = document.getElementById('modalFiltroSemaforo').value, ordenes = DATOS_GLOBALES[CURRENT_SECTION_KEY].ordenes.filter(o => filtro === 'todos' || o.semaforo === filtro), cs = {}, co = {}, ca = {}; ordenes.forEach(o => { let s1 = o.comentario ? o.comentario.trim() : "Sin Estatus", s2 = o.observaciones ? o.observaciones.trim() : "Sin Comentario", s3 = o.asesor || "Sin Asignar"; cs[s1===""?"Sin Estatus":s1] = (cs[s1===""?"Sin Estatus":s1] || 0) + 1; co[s2===""?"Sin Comentario":s2] = (co[s2===""?"Sin Comentario":s2] || 0) + 1; ca[s3] = (ca[s3] || 0) + 1; }); const gh = (obj, t, clr) => { let r = `<table class="modal-table"><thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead><tbody>`; Object.entries(obj).sort((a,b)=>b[1]-a[1]).forEach(([s,c]) => r += `<tr onclick="window.verDetalleFiltrado('${t}', '${s}')"><td>${s}</td><td><span class="count-badge" style="background:${clr};">${c}</span></td></tr>`); return Object.keys(obj).length ? r + `</tbody></table>` : "<p>No hay datos.</p>"; }; document.getElementById('tableEstatusContainer').innerHTML = gh(cs, 'comentario', 'var(--grey)'); document.getElementById('tableObservacionesContainer').innerHTML = gh(co, 'observaciones', 'var(--green)'); document.getElementById('tableAsesorContainer').innerHTML = gh(ca, 'asesor', 'var(--h-blue)'); }
+window.verDetalleFiltrado = function(tipo, valor) { document.getElementById('modalMainView').style.display = "none"; document.getElementById('modalDetailView').style.display = "block"; let filtro = document.getElementById('modalFiltroSemaforo').value; document.getElementById('detalleTitulo').innerText = `Filtrado por: ${valor}`; let html = `<table id="tabla-detalle-copiar" class="track-table"><thead><tr><th>Orden</th><th>Cliente</th><th>Asesor</th><th>Días</th><th>Importe</th><th>Seguimiento</th><th>Comentarios</th></tr></thead><tbody>`; DATOS_GLOBALES[CURRENT_SECTION_KEY].ordenes.filter(o => { if(filtro !== 'todos' && o.semaforo !== filtro) return false; let val = tipo === 'asesor' ? (o.asesor||"Sin") : (tipo === 'comentario' ? (o.comentario||"Sin") : (o.observaciones||"Sin")); return val.trim() === valor || (val.trim()==="" && valor.startsWith("Sin")); }).sort((a, b) => b.dias - a.dias).forEach(o => { html += `<tr style="background-color:${getPastelColor(o.comentario)}"><td>${o.orden}</td><td>${o.nombre}</td><td>${o.asesor}</td><td>${o.dias}</td><td>${moneyFormat.format(o.importe)}</td><td>${o.comentario || '-'}</td><td>${o.observaciones || '-'}</td></tr>`; }); document.getElementById('detalleTablaContainer').innerHTML = html + `</tbody></table>`; }
+
+function volverVistaPrincipal() { document.getElementById('modalDetailView').style.display = "none"; document.getElementById('modalMainView').style.display = "block"; }
+function cerrarModal() { document.getElementById('kpiModal').style.display = "none"; }
+function actualizarListasDesplegables() { let com = new Set(), obs = new Set(); Object.values(DB_NOTAS_COMPARTIDAS || {}).forEach(i => { if(i.comentario) com.add(i.comentario); if(i.observaciones) obs.add(i.observaciones); }); let dlC = document.getElementById('list-comentarios'), dlO = document.getElementById('list-observaciones'); if(dlC) { dlC.innerHTML = ''; com.forEach(c => dlC.innerHTML += `<option value="${c}">`); } if(dlO) { dlO.innerHTML = ''; obs.forEach(c => dlO.innerHTML += `<option value="${c}">`); } }
+function copiarTabla() { let range = document.createRange(); range.selectNode(document.getElementById('tabla-para-copiar')); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); mostrarToast("Copiado al portapapeles"); }
+function copiarTablaDetalle() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; let range = document.createRange(); range.selectNode(tabla); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); }
+function exportarAExcel() { if (!RAW_EXCEL_DATA || RAW_EXCEL_DATA.length === 0) return; let dataAExportar = RAW_EXCEL_DATA.reduce((acc, fila) => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1) { let notas = leerDatosNota(orden); let estatus = notas.comentario ? notas.comentario.trim() : "(Vacío)"; if (!(FILTROS_POR_SECCION[orden.charAt(0)] || new Set()).has(estatus)) acc.push({ ...fila, 'Seguimiento': notas.comentario || '', 'Comentarios': notas.observaciones || '', 'Autor Comentario': notas.modificado_por || '', 'Fecha Mod.': notas.fecha || '' }); } return acc; }, []); let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataAExportar), "Seguimiento"); XLSX.writeFile(wb, "Reporte_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
+function exportarDetalleAExcel() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; XLSX.writeFile(XLSX.utils.table_to_book(tabla, {sheet: "Detalle"}), "Detalle_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
