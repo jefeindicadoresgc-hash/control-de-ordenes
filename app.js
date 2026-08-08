@@ -605,3 +605,18 @@ function exportarAExcel() {
     mostrarToast("Excel exportado exitosamente.");
 }
 function exportarDetalleAExcel() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; XLSX.writeFile(XLSX.utils.table_to_book(tabla, {sheet: "Detalle Filtrado"}), document.getElementById('detalleTitulo').innerText.replace(/[^a-zA-Z0-9]/g, '_') + "_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
+
+// ==========================================
+// GENERADOR DE FONDO MATRIX
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    const matrixBg = document.getElementById('matrix-bg');
+    if (matrixBg) {
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ';
+        for (let i = 0; i < 200; i++) {
+            let span = document.createElement('span');
+            span.innerText = chars.charAt(Math.floor(Math.random() * chars.length));
+            matrixBg.appendChild(span);
+        }
+    }
+});
