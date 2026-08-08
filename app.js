@@ -37,6 +37,27 @@ const moneyFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency
 // INICIALIZACIÓN Y EVENTOS DEL DOM
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. GENERADOR INTELIGENTE DE FONDO MATRIX
+    const matrixBg = document.getElementById('matrix-bg');
+    if (matrixBg) {
+        // Calculamos cuántas letras caben exactamente en la pantalla (40px cada celda)
+        const columns = Math.ceil(window.innerWidth / 40);
+        const rows = Math.ceil(window.innerHeight / 40);
+        // Sumamos un extra de margen de seguridad para pantallas ultra anchas
+        const totalChars = (columns * rows) + 150; 
+        
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ';
+        let fragments = document.createDocumentFragment(); // Optimización de rendimiento
+        
+        for (let i = 0; i < totalChars; i++) {
+            let span = document.createElement('span');
+            span.innerText = chars.charAt(Math.floor(Math.random() * chars.length));
+            fragments.appendChild(span);
+        }
+        matrixBg.appendChild(fragments);
+    }
+
+    // 2. CONFIGURACIÓN DEL SISTEMA PRINCIPAL
     document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     // Login
@@ -107,7 +128,7 @@ function verificarPassword() {
     
     IS_ADMIN = false; ALLOWED_SECTIONS = []; USER_NAME = '';
     
-    // Cuenta Maestra (Hardcoded de seguridad)
+    // Cuenta Maestra
     if (input === '2099') {
         USER_ROLE = 'Administrador';
         IS_ADMIN = true;
@@ -117,7 +138,7 @@ function verificarPassword() {
         return;
     } 
     
-    // Validación Dinámica de Usuarios
+    // Validación Dinámica
     database.ref('usuarios/' + input).once('value').then((snapshot) => {
         if (snapshot.exists()) {
             let u = snapshot.val();
@@ -165,7 +186,6 @@ function iniciarApp() {
 // SINCRONIZACIÓN FIREBASE (PRODUCCIÓN)
 // ==========================================
 function iniciarConexionNube() {
-    // 1. Escuchar el Excel
     database.ref('excel_compartido').on('value', (snapshot) => {
         let datosEnNube = snapshot.val();
         if (datosEnNube && datosEnNube.datos_json) {
@@ -189,12 +209,10 @@ function iniciarConexionNube() {
         }
     });
 
-    // 2. Escuchar Comentarios y Seguimientos (Alta Eficiencia)
     database.ref('notas').on('value', (snapshot) => {
         DB_NOTAS_COMPARTIDAS = snapshot.val() || {};
         actualizarListasDesplegables();
         
-        // Inyecta el texto sin recargar toda la tabla para evitar cortes de escritura
         if (DATOS_GLOBALES) {
             for (let orden in DB_NOTAS_COMPARTIDAS) {
                 let n = DB_NOTAS_COMPARTIDAS[orden];
@@ -213,7 +231,6 @@ function iniciarConexionNube() {
         }
     });
 
-    // 3. Escuchar Usuarios
     database.ref('usuarios').on('value', (snapshot) => {
         DB_USUARIOS = snapshot.val() || {};
         renderizarTablaUsuarios();
@@ -305,13 +322,12 @@ function renderizarTablaUsuarios() {
 }
 
 // ==========================================
-// MÓDULO DE EDICIÓN DE NOTAS (PRODUCCIÓN)
+// MÓDULO DE EDICIÓN DE NOTAS
 // ==========================================
 window.guardarDatosNota = function(orden, campo, valor) {
     orden = orden.toUpperCase().trim();
     let letraOrden = orden.charAt(0);
 
-    // Validación estricta de permisos
     if (campo === 'comentario') {
         if (!IS_ADMIN) {
             mostrarToast("Solo el Administrador puede modificar el Seguimiento.", "fa-lock");
@@ -334,7 +350,6 @@ window.guardarDatosNota = function(orden, campo, valor) {
         updates['notas/' + orden + '/modificado_por'] = USER_NAME;
     }
     
-    // Método UPDATE para fusionar datos sin borrar el campo contrario
     database.ref().update(updates).then(() => {
         mostrarToast("Guardado", "fa-check");
     }).catch(err => alert("Revisa tu conexión a internet. Error al guardar: " + err.message));
@@ -491,9 +506,6 @@ function renderizarTablaSeccion(key) {
     document.getElementById(`table-container-${key}`).innerHTML = html + `</tbody></table>`;
 }
 
-// ==========================================
-// FILTROS FLOTANTES Y MODALES
-// ==========================================
 window.abrirMenuFiltroColumna = function(event, sectionKey) {
     event.stopPropagation(); ACTIVE_FILTER_SECTION = sectionKey;
     document.getElementById('filter-section-title').innerText = DATOS_GLOBALES[sectionKey] ? DATOS_GLOBALES[sectionKey].titulo : sectionKey;
@@ -605,18 +617,3 @@ function exportarAExcel() {
     mostrarToast("Excel exportado exitosamente.");
 }
 function exportarDetalleAExcel() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; XLSX.writeFile(XLSX.utils.table_to_book(tabla, {sheet: "Detalle Filtrado"}), document.getElementById('detalleTitulo').innerText.replace(/[^a-zA-Z0-9]/g, '_') + "_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
-
-// ==========================================
-// GENERADOR DE FONDO MATRIX
-// ==========================================
-document.addEventListener("DOMContentLoaded", () => {
-    const matrixBg = document.getElementById('matrix-bg');
-    if (matrixBg) {
-        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ';
-        for (let i = 0; i < 200; i++) {
-            let span = document.createElement('span');
-            span.innerText = chars.charAt(Math.floor(Math.random() * chars.length));
-            matrixBg.appendChild(span);
-        }
-    }
-});
