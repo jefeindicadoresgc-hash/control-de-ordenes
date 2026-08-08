@@ -13,21 +13,62 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- Archivos Locales (Se recomienda usar ?v=7 en GitHub si no se actualizan los cambios rápido) -->
+    <!-- Archivos Locales -->
     <link rel="stylesheet" href="styles.css">
     <script src="app.js" defer></script>
 </head>
 <body>
 
-<!-- PANTALLA DE LOGIN -->
+<!-- NUEVA PANTALLA DE LOGIN (MATRIX + GLOW INPUT) -->
 <div id="login-overlay">
-    <div class="login-box">
-        <div class="login-logo"><i class="fas fa-chart-line"></i></div>
-        <h2>Control de Órdenes</h2>
-        <p>Hyundai Coatzacoalcos | Ingresa tu clave</p>
-        <input type="password" id="pass-input" placeholder="Contraseña">
-        <button id="btn-login">Ingresar</button>
-        <p id="login-error">Contraseña incorrecta o usuario no existe.</p>
+    <!-- Fondo Matrix -->
+    <div class="jp-matrix">
+        <span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>マ</span><span>ミ</span><span>ム</span><span>メ</span><span>モ</span><span>ヤ</span><span>ユ</span><span>ヨ</span><span>ラ</span><span>リ</span><span>ル</span><span>レ</span><span>ロ</span><span>ワ</span><span>ヲ</span><span>ン</span><span>ガ</span><span>ギ</span><span>グ</span><span>ゲ</span><span>ゴ</span><span>ザ</span><span>ジ</span><span>ズ</span><span>ゼ</span><span>ゾ</span><span>ダ</span><span>ヂ</span><span>ヅ</span><span>デ</span><span>ド</span><span>バ</span><span>ビ</span><span>ブ</span><span>ベ</span><span>ボ</span><span>パ</span><span>ピ</span><span>プ</span><span>ペ</span><span>ポ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>マ</span><span>ミ</span><span>ム</span><span>メ</span><span>モ</span><span>ヤ</span><span>ユ</span><span>ヨ</span><span>ラ</span><span>リ</span><span>ル</span><span>レ</span><span>ロ</span><span>ワ</span><span>ヲ</span><span>ン</span><span>ガ</span><span>ギ</span><span>グ</span><span>ゲ</span><span>ゴ</span><span>ザ</span><span>ジ</span><span>ズ</span><span>ゼ</span><span>ゾ</span><span>ダ</span><span>ヂ</span><span>ヅ</span><span>デ</span><span>ド</span><span>バ</span><span>ビ</span><span>ブ</span><span>ベ</span><span>ボ</span><span>パ</span><span>ピ</span><span>プ</span><span>ペ</span><span>ポ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>マ</span><span>ミ</span><span>ム</span><span>メ</span><span>モ</span><span>ヤ</span><span>ユ</span><span>ヨ</span><span>ラ</span><span>リ</span><span>ル</span><span>レ</span><span>ロ</span><span>ワ</span><span>ヲ</span><span>ン</span><span>ガ</span><span>ギ</span><span>グ</span><span>ゲ</span><span>ゴ</span><span>ザ</span><span>ジ</span><span>ズ</span><span>ゼ</span><span>ゾ</span><span>ダ</span><span>ヂ</span><span>ヅ</span><span>デ</span><span>ド</span><span>バ</span><span>ビ</span><span>ブ</span><span>ベ</span><span>ボ</span><span>パ</span><span>ピ</span><span>プ</span><span>ペ</span><span>ポ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>マ</span><span>ミ</span><span>ム</span><span>メ</span><span>モ</span><span>ヤ</span><span>ユ</span><span>ヨ</span><span>ラ</span><span>リ</span><span>ル</span><span>レ</span><span>ロ</span><span>ワ</span><span>ヲ</span><span>ン</span><span>ガ</span><span>ギ</span><span>グ</span><span>ゲ</span><span>ゴ</span><span>ザ</span><span>ジ</span><span>ズ</span><span>ゼ</span><span>ゾ</span><span>ダ</span><span>ヂ</span><span>ヅ</span><span>デ</span><span>ド</span><span>バ</span><span>ビ</span><span>ブ</span><span>ベ</span><span>ボ</span><span>パ</span><span>ピ</span><span>プ</span><span>ペ</span><span>ポ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span><span>マ</span><span>ミ</span><span>ム</span><span>メ</span><span>モ</span><span>ヤ</span><span>ユ</span><span>ヨ</span><span>ラ</span><span>リ</span><span>ル</span><span>レ</span><span>ロ</span><span>ワ</span><span>ヲ</span><span>ン</span><span>ガ</span><span>ギ</span><span>グ</span><span>ゲ</span><span>ゴ</span><span>ザ</span><span>ジ</span><span>ズ</span><span>ゼ</span><span>ゾ</span><span>ダ</span><span>ヂ</span><span>ヅ</span><span>デ</span><span>ド</span><span>バ</span><span>ビ</span><span>ブ</span><span>ベ</span><span>ボ</span><span>パ</span><span>ピ</span><span>プ</span><span>ペ</span><span>ポ</span><span>ア</span><span>イ</span><span>ウ</span><span>エ</span><span>オ</span><span>カ</span><span>キ</span><span>ク</span><span>ケ</span><span>コ</span><span>サ</span><span>シ</span><span>ス</span><span>セ</span><span>ソ</span><span>タ</span><span>チ</span><span>ツ</span><span>テ</span><span>ト</span><span>ナ</span><span>ニ</span><span>ヌ</span><span>ネ</span><span>ノ</span><span>ハ</span><span>ヒ</span><span>フ</span><span>ヘ</span><span>ホ</span>
+    </div>
+
+    <!-- Contenedor central flotante -->
+    <div class="login-hologram">
+        <h2 class="neon-title">HYUNDAI S-CORE</h2>
+        
+        <!-- From Uiverse.io by Lakshay-art (Adaptado) --> 
+        <div id="poda">
+            <div class="glow"></div>
+            <div class="darkBorderBg"></div>
+            <div class="darkBorderBg"></div>
+            <div class="darkBorderBg"></div>
+            <div class="white"></div>
+            <div class="border"></div>
+
+            <div id="main">
+                <!-- Cambiado type="text" a type="password" y agregado el id="pass-input" para conectarlo al JS -->
+                <input placeholder="Clave de Acceso..." type="password" id="pass-input" name="text" class="input" />
+                <div id="input-mask"></div>
+                <div id="pink-mask"></div>
+                <div class="filterBorder"></div>
+                
+                <!-- Convertido en botón con id="btn-login" para conectarlo al JS. Ícono cambiado a Flecha -->
+                <button id="btn-login" class="login-submit-btn">
+                    <svg preserveAspectRatio="none" height="24" width="24" viewBox="0 0 24 24" fill="none">
+                        <path d="M5 12h14M12 5l7 7-7 7" stroke="url(#search)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    </svg>
+                </button>
+
+                <!-- Ícono de Candado (antes lupa) -->
+                <div id="search-icon">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" height="20" fill="none" class="feather feather-lock">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="url(#search)"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="url(#search)"></path>
+                        <defs>
+                            <linearGradient gradientTransform="rotate(50)" id="search">
+                                <stop stop-color="#f8e7f8" offset="0%"></stop>
+                                <stop stop-color="#b6a9b7" offset="50%"></stop>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        <p id="login-error" class="neon-error">Acceso Denegado.</p>
     </div>
 </div>
 
@@ -112,7 +153,7 @@
     </div>
 </div>
 
-<!-- MODAL DE DESGLOSE (SIN CANVAS) -->
+<!-- MODAL DE DESGLOSE -->
 <div id="kpiModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" id="btn-close-modal">&times;</span>
@@ -159,7 +200,7 @@
     </div>
 </div>
 
-<!-- MODAL DE AJUSTES (GESTIÓN DE USUARIOS) -->
+<!-- MODAL DE AJUSTES -->
 <div id="settingsModal" class="modal">
     <div class="modal-content" style="max-width: 800px;">
         <span class="close-modal" id="btn-close-settings">&times;</span>
