@@ -24,22 +24,6 @@ const moneyFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency
 // SECCIÓN 2: EVENTOS DOM Y UI
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
-    // GENERADOR INTELIGENTE DE FONDO MATRIX
-    const matrixBg = document.getElementById('matrix-bg');
-    if (matrixBg) {
-        const columns = Math.ceil(window.innerWidth / 40);
-        const rows = Math.ceil(window.innerHeight / 40);
-        const totalChars = (columns * rows) + 150; 
-        const chars = '';
-        let fragments = document.createDocumentFragment(); 
-        for (let i = 0; i < totalChars; i++) {
-            let span = document.createElement('span');
-            span.innerText = chars.charAt(Math.floor(Math.random() * chars.length));
-            fragments.appendChild(span);
-        }
-        matrixBg.appendChild(fragments);
-    }
-
     document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     document.getElementById('btn-login').addEventListener('click', verificarPassword);
@@ -288,6 +272,7 @@ function renderizarTablaUsuarios() {
         let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
         let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca";
 
+        // Aquí está la corrección: Ahora hay exactamente 6 etiquetas <td> para empatar con los 6 encabezados
         tbody.innerHTML += `<tr>
             <td><strong>${pwd}</strong></td>
             <td>${u.nombre}</td>
@@ -317,4 +302,4 @@ function actualizarListasDesplegables() { let com = new Set(), obs = new Set(); 
 function copiarTabla() { let range = document.createRange(); range.selectNode(document.getElementById('tabla-para-copiar')); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); mostrarToast("Copiado al portapapeles"); }
 function copiarTablaDetalle() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; let range = document.createRange(); range.selectNode(tabla); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); }
 function exportarAExcel() { if (!RAW_EXCEL_DATA || RAW_EXCEL_DATA.length === 0) return; let dataAExportar = RAW_EXCEL_DATA.reduce((acc, fila) => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1) { let notas = leerDatosNota(orden); let estatus = notas.comentario ? notas.comentario.trim() : "(Vacío)"; if (!(FILTROS_POR_SECCION[orden.charAt(0)] || new Set()).has(estatus)) acc.push({ ...fila, 'Seguimiento': notas.comentario || '', 'Comentarios': notas.observaciones || '', 'Autor Comentario': notas.modificado_por || '', 'Fecha Mod.': notas.fecha || '' }); } return acc; }, []); let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataAExportar), "Seguimiento"); XLSX.writeFile(wb, "Reporte_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
-function exportarDetalleAExcel() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; XLSX.writeFile(XLSX.utils.table_to_book(tabla, {sheet: "Detalle"}), "Detalle_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
+function exportarDetalleAExcel() { let tabla = document.getElementById('tabla
