@@ -187,8 +187,18 @@ function iniciarConexionNube() {
         let lista = document.getElementById('comments-list'); if(!lista) return;
         lista.innerHTML = ''; let datos = snapshot.val();
         if(datos) {
-            Object.values(datos).forEach(c => {
-                lista.innerHTML += `<div class="comment-item"><div class="comment-meta"><span class="comment-author"><i class="fas fa-user-circle"></i> ${c.autor}</span><span><i class="far fa-clock"></i> ${c.fecha}</span></div><div class="comment-text">${c.texto}</div></div>`;
+            Object.entries(datos).forEach(([key, c]) => {
+                // Si es administrador, le mostramos el botón de basura
+                let btnBorrar = IS_ADMIN ? `<button class="btn-delete-comment" onclick="eliminarComentarioGeneral('${key}')" title="Borrar Aviso"><i class="fas fa-trash"></i></button>` : '';
+                
+                lista.innerHTML += `
+                <div class="comment-item">
+                    <div class="comment-meta">
+                        <div><span class="comment-author"><i class="fas fa-user-circle"></i> ${c.autor}</span><span style="margin-left:10px;"><i class="far fa-clock"></i> ${c.fecha}</span></div>
+                        ${btnBorrar}
+                    </div>
+                    <div class="comment-text">${c.texto}</div>
+                </div>`;
             });
             lista.scrollTop = lista.scrollHeight;
         } else {
