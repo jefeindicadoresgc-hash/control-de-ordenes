@@ -217,6 +217,45 @@ body {
 .filterBorder::before { content: ""; text-align: center; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(90deg); position: absolute; width: 600px; height: 600px; filter: brightness(1.35); background-image: conic-gradient( rgba(0, 0, 0, 0), #3d3a4f, rgba(0, 0, 0, 0) 50%, rgba(0, 0, 0, 0) 50%, #3d3a4f, rgba(0, 0, 0, 0) 100% ); animation: rotateBtn 4s linear infinite; }
 @keyframes rotateBtn { 100% { transform: translate(-50%, -50%) rotate(450deg); } }
 
+/* ==========================================
+   EL DEMOGORGON / IMAGEN DE FONDO
+   ========================================== */
+.monster-bg {
+    position: absolute;
+    bottom: -5%; /* Lo anclamos en la parte de abajo de la pantalla */
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 70vh; /* Ocupará el 70% de la pantalla hacia arriba */
+    
+    /* AQUÍ PONES EL NOMBRE DE TU IMAGEN GENERADA */
+    background-image: url('demogorgon.png'); 
+    
+    background-size: contain;
+    background-position: bottom center;
+    background-repeat: no-repeat;
+    
+    /* Efectos de fusión para que parezca que está en las sombras */
+    opacity: 0.25; /* Transparencia sutil para que no tape el formulario */
+    z-index: 4; /* Lo ponemos detrás de las letras pero delante del polvo */
+    pointer-events: none; /* Para que no estorbe si le das clic */
+    
+    /* Animación de respiración monstruosa */
+    animation: monsterBreathe 6s infinite alternate ease-in-out;
+}
+
+/* Esta animación hace que el monstruo palpite con la luz roja y crezca un poco */
+@keyframes monsterBreathe {
+    0% { 
+        transform: translateX(-50%) scale(1); 
+        filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.2)); 
+    }
+    100% { 
+        transform: translateX(-50%) scale(1.03); 
+        filter: drop-shadow(0 0 30px rgba(255, 0, 0, 0.8)); 
+    }
+}
+
 
 /* =========================================================
    SECCIÓN 3: CABECERA Y BOTONES DEL SISTEMA
