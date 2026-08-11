@@ -84,6 +84,26 @@ function verificarPassword() {
     
     database.ref('usuarios/' + input).once('value').then((snapshot) => {
         if (snapshot.exists()) {
+            let u = snapshot.val(); 
+            USER_ROLE = u.rol; 
+            USER_NAME = u.nombre; 
+            IS_ADMIN = (u.rol === 'Administrador'); 
+            ALLOWED_SECTIONS = u.secciones || [];
+            
+            // NUEVO: Registrar la fecha y hora del inicio de sesión
+            let fechaAcceso = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
+            database.ref('usuarios/' + input).update({ ultimo_acceso: fechaAcceso });
+
+            iniciarApp();
+        } else {
+            document.getElementById('login-error').style.display = 'block';
+            setTimeout(() => document.getElementById('login-error').style.display = 'none', 3000);
+        }
+    }).catch(err => alert("Error de red: " + err.message));
+}
+    
+    database.ref('usuarios/' + input).once('value').then((snapshot) => {
+        if (snapshot.exists()) {
             let u = snapshot.val(); USER_ROLE = u.rol; USER_NAME = u.nombre; IS_ADMIN = (u.rol === 'Administrador'); ALLOWED_SECTIONS = u.secciones || [];
             iniciarApp();
         } else {
@@ -253,7 +273,26 @@ function guardarUsuario() {
     database.ref('usuarios/' + pass).set({ nombre: nombre, rol: rol, secciones: secciones }).then(() => { mostrarToast("Usuario guardado"); document.getElementById('set-pass').value = ''; document.getElementById('set-nombre').value = ''; document.querySelectorAll('.chk-sec').forEach(cb => cb.checked = false); });
 }
 window.eliminarUsuario = function(pwd) { if(confirm("¿Eliminar usuario?")) { database.ref('usuarios/' + pwd).remove().then(() => mostrarToast("Usuario eliminado")); } };
-function renderizarTablaUsuarios() { let tbody = document.getElementById('tabla-usuarios-body'); if(!tbody) return; tbody.innerHTML = ''; for (let pwd in DB_USUARIOS) { let u = DB_USUARIOS[pwd]; tbody.innerHTML += `<tr><td><strong>${pwd}</strong></td><td>${u.nombre}</td><td>${u.rol}</td><td>${(u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna"}</td><td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')"><i class="fas fa-trash"></i></button></td></tr>`; } }
+function renderizarTablaUsuarios() { 
+    let tbody = document.getElementById('tabla-usuarios-body'); 
+    if(!tbody) return; 
+    tbody.innerHTML = ''; 
+    
+    for (let pwd in DB_USUARIOS) { 
+        let u = DB_USUARIOS[pwd]; 
+        let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
+        let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca ha entrado"; // Si no tiene fecha, dirá "Nunca"
+
+        tbody.innerHTML += `<tr>
+            <td><strong>${pwd}</strong></td>
+            <td>${u.nombre}</td>
+            <td>${u.rol}</td>
+            <td>${secStr}</td>
+            <td><span style="color: var(--grey); font-weight: bold; font-size: 0.9em;">${ultimoAcceso}</span></td>
+            <td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')"><i class="fas fa-trash"></i></button></td>
+        </tr>`; 
+    } 
+}
 
 window.abrirMenuFiltroColumna = function(event, sectionKey) { event.stopPropagation(); ACTIVE_FILTER_SECTION = sectionKey; document.getElementById('filter-section-title').innerText = DATOS_GLOBALES[sectionKey] ? DATOS_GLOBALES[sectionKey].titulo : sectionKey; let estatusSet = new Set(); RAW_EXCEL_DATA.forEach(fila => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1 && orden.charAt(0) === sectionKey) { estatusSet.add(leerDatosNota(orden).comentario ? leerDatosNota(orden).comentario.trim() : "(Vacío)"); } }); let contenedor = document.getElementById('floatingFilterList'); contenedor.innerHTML = `<label class="filter-item" style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px;"><input type="checkbox" id="chkAllFiltro" onchange="window.toggleAllFiltros(this)"><strong>(Seleccionar Todo)</strong></label>`; let seccionOcultos = FILTROS_POR_SECCION[sectionKey] || new Set(); Array.from(estatusSet).sort().forEach(est => { contenedor.innerHTML += `<label class="filter-item"><input type="checkbox" class="chk-filtro-item" value="${est}" ${seccionOcultos.has(est) ? "" : "checked"} onchange="window.updateChkAll()"><span>${est}</span></label>`; }); let menu = document.getElementById('floatingFilter'); menu.style.display = 'block'; menu.style.left = Math.max(10, event.pageX - 150) + "px"; menu.style.top = (event.pageY + 15) + "px"; window.updateChkAll(); }
 window.toggleAllFiltros = function(source) { document.querySelectorAll('.chk-filtro-item').forEach(chk => chk.checked = source.checked); }
