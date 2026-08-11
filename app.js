@@ -336,6 +336,15 @@ function enviarComentarioGeneral() {
     .catch(err => { alert("Error al enviar: " + err.message); if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar'; } });
 }
 
+// NUEVA FUNCIÓN: Permite al Administrador borrar un aviso
+window.eliminarComentarioGeneral = function(key) {
+    if(confirm("¿Seguro que deseas eliminar este aviso del tablero para todos?")) {
+        database.ref('comentarios_generales/' + key).remove()
+        .then(() => mostrarToast("Aviso eliminado correctamente", "fa-trash"))
+        .catch(err => alert("Error al eliminar: " + err.message));
+    }
+};
+
 
 // =========================================================
 // SECCIÓN 10: SISTEMA DE FILTROS FLOTANTES
