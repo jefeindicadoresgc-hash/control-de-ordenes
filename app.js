@@ -24,6 +24,22 @@ const moneyFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency
 // SECCIÓN 2: EVENTOS DOM Y UI
 // ==========================================
 document.addEventListener("DOMContentLoaded", () => {
+    // GENERADOR INTELIGENTE DE FONDO MATRIX
+    const matrixBg = document.getElementById('matrix-bg');
+    if (matrixBg) {
+        const columns = Math.ceil(window.innerWidth / 40);
+        const rows = Math.ceil(window.innerHeight / 40);
+        const totalChars = (columns * rows) + 150; 
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ';
+        let fragments = document.createDocumentFragment(); 
+        for (let i = 0; i < totalChars; i++) {
+            let span = document.createElement('span');
+            span.innerText = chars.charAt(Math.floor(Math.random() * chars.length));
+            fragments.appendChild(span);
+        }
+        matrixBg.appendChild(fragments);
+    }
+
     document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
     document.getElementById('btn-login').addEventListener('click', verificarPassword);
@@ -272,7 +288,6 @@ function renderizarTablaUsuarios() {
         let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
         let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca";
 
-        // Aquí está la corrección: Ahora hay exactamente 6 etiquetas <td> para empatar con los 6 encabezados
         tbody.innerHTML += `<tr>
             <td><strong>${pwd}</strong></td>
             <td>${u.nombre}</td>
