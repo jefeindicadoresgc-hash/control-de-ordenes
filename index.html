@@ -11,7 +11,9 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <link rel="stylesheet" href="styles.css">
+    
+    <!-- El ?v=8 fuerza al navegador a recargar el diseño y evitar la pantalla en blanco -->
+    <link rel="stylesheet" href="styles.css?v=8">
     <script src="app.js" defer></script>
 </head>
 <body>
@@ -20,6 +22,9 @@
 <!-- SECCIÓN 2: PANTALLA DE LOGIN (TEMA ROJO)   -->
 <!-- ========================================== -->
 <div id="login-overlay">
+    <!-- El fondo Matrix ahora se genera mágicamente desde app.js para no ensuciar el HTML -->
+    <div class="jp-matrix" id="matrix-bg"></div>
+
     <div class="uiverse-title-pattern">
         <div class="bg-glow"></div>
         <div class="bg-noise"></div>
@@ -238,7 +243,7 @@
                     <th>Nombre</th>
                     <th>Rol</th>
                     <th>Secciones</th>
-                    <th>Último Acceso</th> <!-- NUEVA COLUMNA -->
+                    <th>Último Acceso</th> <!-- Nueva columna de acceso -->
                     <th>Acción</th>
                 </tr>
             </thead>
@@ -246,6 +251,8 @@
         </table>
     </div>
 </div>
+
+<div style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: var(--grey); opacity: 0.3; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">EMM</div>
 
 </body>
 </html>
