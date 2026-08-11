@@ -270,15 +270,16 @@ function renderizarTablaUsuarios() {
     for (let pwd in DB_USUARIOS) { 
         let u = DB_USUARIOS[pwd]; 
         let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
-        let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca ha entrado";
+        let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca";
 
+        // Aquí está la corrección: Ahora hay exactamente 6 etiquetas <td> para empatar con los 6 encabezados
         tbody.innerHTML += `<tr>
             <td><strong>${pwd}</strong></td>
             <td>${u.nombre}</td>
             <td>${u.rol}</td>
             <td>${secStr}</td>
-            <td><span style="color: var(--grey); font-weight: bold; font-size: 0.9em;">${ultimoAcceso}</span></td>
-            <td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')"><i class="fas fa-trash"></i></button></td>
+            <td style="font-weight: bold; color: var(--grey); font-size: 0.9em;">${ultimoAcceso}</td>
+            <td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')" title="Eliminar"><i class="fas fa-trash"></i></button></td>
         </tr>`; 
     } 
 }
