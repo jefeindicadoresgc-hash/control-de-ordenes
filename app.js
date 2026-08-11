@@ -1,6 +1,6 @@
-// ==========================================
-// SECCIÓN 1: CONFIGURACIÓN FIREBASE Y ESTADO
-// ==========================================
+// =========================================================
+// SECCIÓN 1: CONFIGURACIÓN FIREBASE Y VARIABLES GLOBALES
+// =========================================================
 const firebaseConfig = {
     apiKey: "AIzaSyCNnyVRFkdclX8SFTbilAmC05cXy63Me64",
     authDomain: "tablero-servicio-hyundai.firebaseapp.com",
@@ -20,49 +20,64 @@ let CURRENT_SECTION_KEY = null, SORT_STATE = {}, FILTROS_POR_SECCION = {}, ACTIV
 
 const moneyFormat = new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN', minimumFractionDigits: 2 });
 
-// ==========================================
-// SECCIÓN 2: EVENTOS DOM Y UI
-// ==========================================
+
+// =========================================================
+// SECCIÓN 2: INICIALIZACIÓN Y EVENTOS DEL DOM
+// =========================================================
 document.addEventListener("DOMContentLoaded", () => {
+    // 1. Generar Fondo Matrix
+    const matrixBg = document.getElementById('matrix-bg');
+    if (matrixBg) {
+        const totalChars = (Math.ceil(window.innerWidth / 40) * Math.ceil(window.innerHeight / 40)) + 150; 
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲンガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ';
+        let fragments = document.createDocumentFragment(); 
+        for (let i = 0; i < totalChars; i++) {
+            let span = document.createElement('span'); span.innerText = chars.charAt(Math.floor(Math.random() * chars.length)); fragments.appendChild(span);
+        }
+        matrixBg.appendChild(fragments);
+    }
+
+    // 2. Fecha Actual
     document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
+    // 3. Listeners Principales
     document.getElementById('btn-login').addEventListener('click', verificarPassword);
     document.getElementById('pass-input').addEventListener("keypress", (e) => { if (e.key === "Enter") { e.preventDefault(); verificarPassword(); } });
-
     document.getElementById('btn-sync').addEventListener('click', () => mostrarToast("Datos sincronizados en tiempo real.", "fa-cloud"));
     document.getElementById('btn-export').addEventListener('click', exportarAExcel);
     document.getElementById('input-excel').addEventListener('change', cargarExcelNube);
-
     document.getElementById('btn-clear-filters').addEventListener('click', limpiarFiltrosFlotantes);
     document.getElementById('btn-copy-summary').addEventListener('click', copiarTabla);
     document.getElementById('btn-close-filter').addEventListener('click', cerrarMenuFiltro);
     document.getElementById('btn-apply-filter').addEventListener('click', aplicarFiltroFlotante);
-
     document.getElementById('btn-close-modal').addEventListener('click', cerrarModal);
     document.getElementById('btn-back-modal').addEventListener('click', volverVistaPrincipal);
     document.getElementById('btn-copy-detail').addEventListener('click', copiarTablaDetalle);
     document.getElementById('btn-export-detail').addEventListener('click', exportarDetalleAExcel);
     document.getElementById('modalFiltroSemaforo').addEventListener('change', aplicarFiltroModal);
-
     document.getElementById('btn-settings').addEventListener('click', abrirAjustes);
     document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('settingsModal').style.display = 'none');
     document.getElementById('btn-save-user').addEventListener('click', guardarUsuario);
 
-    // Eventos del Tablero de Comentarios
+    // 4. Tablero de Avisos
     let btnSend = document.getElementById('btn-send-comment');
     if(btnSend) btnSend.addEventListener('click', enviarComentarioGeneral);
-    
     let inputComment = document.getElementById('new-general-comment');
     if(inputComment) inputComment.addEventListener("keypress", (e) => { if (e.key === "Enter") enviarComentarioGeneral(); });
 
+    // 5. Cierres al hacer clic fuera
     window.onclick = function(e) { 
         if (e.target == document.getElementById('kpiModal')) cerrarModal(); 
         if (e.target == document.getElementById('settingsModal')) document.getElementById('settingsModal').style.display = 'none';
         let menu = document.getElementById('floatingFilter'); 
-        if (menu.style.display === 'block' && !menu.contains(e.target) && !e.target.classList.contains('fa-filter')) { cerrarMenuFiltro(); }
+        if (menu && menu.style.display === 'block' && !menu.contains(e.target) && !e.target.classList.contains('fa-filter')) { cerrarMenuFiltro(); }
     };
 });
 
+
+// =========================================================
+// SECCIÓN 3: UTILIDADES DE INTERFAZ (UI)
+// =========================================================
 function mostrarToast(mensaje, icono = 'fa-check-circle') {
     let toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = `<i class="fas ${icono}"></i> ${mensaje}`;
     document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
@@ -75,15 +90,17 @@ function getPastelColor(texto) {
     return `hsl(${Math.abs(hash) % 360}, 40%, 97%)`; 
 }
 
-// ==========================================
-// SECCIÓN 3: AUTENTICACIÓN
-// ==========================================
+
+// =========================================================
+// SECCIÓN 4: AUTENTICACIÓN Y LOGIN
+// =========================================================
 function verificarPassword() {
     let input = document.getElementById('pass-input').value.trim();
     if(input === "") return;
     
     IS_ADMIN = false; ALLOWED_SECTIONS = []; USER_NAME = '';
     
+    // Hardcode del Super Admin
     if (input === '2099') {
         USER_ROLE = 'Administrador'; IS_ADMIN = true; USER_NAME = 'Súper Administrador (2099)'; ALLOWED_SECTIONS = ['A', 'S', 'N', 'V', 'G', 'I']; 
         iniciarApp(); return;
@@ -92,12 +109,9 @@ function verificarPassword() {
     database.ref('usuarios/' + input).once('value').then((snapshot) => {
         if (snapshot.exists()) {
             let u = snapshot.val(); 
-            USER_ROLE = u.rol; 
-            USER_NAME = u.nombre; 
-            IS_ADMIN = (u.rol === 'Administrador'); 
-            ALLOWED_SECTIONS = u.secciones || [];
+            USER_ROLE = u.rol; USER_NAME = u.nombre; IS_ADMIN = (u.rol === 'Administrador'); ALLOWED_SECTIONS = u.secciones || [];
             
-            // Registrar la fecha y hora del inicio de sesión
+            // Registro de último acceso
             let fechaAcceso = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
             database.ref('usuarios/' + input).update({ ultimo_acceso: fechaAcceso });
 
@@ -126,10 +140,12 @@ function iniciarApp() {
     iniciarConexionNube();
 }
 
-// ==========================================
-// SECCIÓN 4: CONEXIÓN FIREBASE
-// ==========================================
+
+// =========================================================
+// SECCIÓN 5: CONEXIÓN FIREBASE Y CARGA DE EXCEL
+// =========================================================
 function iniciarConexionNube() {
+    // Escucha el Excel
     database.ref('excel_compartido').on('value', (snapshot) => {
         let datosEnNube = snapshot.val();
         if (datosEnNube && datosEnNube.datos_json) {
@@ -149,6 +165,7 @@ function iniciarConexionNube() {
         }
     });
 
+    // Escucha Notas
     database.ref('notas').on('value', (snapshot) => {
         DB_NOTAS_COMPARTIDAS = snapshot.val() || {}; actualizarListasDesplegables();
         if (DATOS_GLOBALES) {
@@ -165,22 +182,13 @@ function iniciarConexionNube() {
         }
     });
 
-    // Escuchar Comentarios Generales del Tablero
+    // Escucha Avisos Generales
     database.ref('comentarios_generales').on('value', (snapshot) => {
-        let lista = document.getElementById('comments-list');
-        if(!lista) return;
-        lista.innerHTML = '';
-        let datos = snapshot.val();
+        let lista = document.getElementById('comments-list'); if(!lista) return;
+        lista.innerHTML = ''; let datos = snapshot.val();
         if(datos) {
             Object.values(datos).forEach(c => {
-                lista.innerHTML += `
-                <div class="comment-item">
-                    <div class="comment-meta">
-                        <span class="comment-author"><i class="fas fa-user-circle"></i> ${c.autor}</span>
-                        <span><i class="far fa-clock"></i> ${c.fecha}</span>
-                    </div>
-                    <div class="comment-text">${c.texto}</div>
-                </div>`;
+                lista.innerHTML += `<div class="comment-item"><div class="comment-meta"><span class="comment-author"><i class="fas fa-user-circle"></i> ${c.autor}</span><span><i class="far fa-clock"></i> ${c.fecha}</span></div><div class="comment-text">${c.texto}</div></div>`;
             });
             lista.scrollTop = lista.scrollHeight;
         } else {
@@ -188,6 +196,7 @@ function iniciarConexionNube() {
         }
     });
 
+    // Escucha Usuarios
     database.ref('usuarios').on('value', (snapshot) => { DB_USUARIOS = snapshot.val() || {}; renderizarTablaUsuarios(); });
 }
 
@@ -203,25 +212,10 @@ function cargarExcelNube(e) {
     }; reader.readAsArrayBuffer(archivo);
 }
 
-// ==========================================
-// SECCIÓN 5: LÓGICA DE TABLEROS Y EXPORTACIÓN
-// ==========================================
-window.guardarDatosNota = function(orden, campo, valor) {
-    orden = orden.toUpperCase().trim(); let letraOrden = orden.charAt(0);
-    if (campo === 'comentario' && !IS_ADMIN) { mostrarToast("Solo Admin edita Seguimiento.", "fa-lock"); renderizarTablaSeccion(letraOrden); return; }
-    if (campo === 'observaciones' && !IS_ADMIN && !ALLOWED_SECTIONS.includes(letraOrden)) { mostrarToast("Sin permisos aquí.", "fa-lock"); renderizarTablaSeccion(letraOrden); return; }
 
-    let updates = {}; updates['notas/' + orden + '/' + campo] = valor;
-    updates['notas/' + orden + '/fecha'] = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
-    if (campo === 'observaciones') { updates['notas/' + orden + '/modificado_por'] = USER_NAME; }
-    database.ref().update(updates).then(() => mostrarToast("Guardado", "fa-check"));
-};
-
-function leerDatosNota(orden) {
-    if (DB_NOTAS_COMPARTIDAS && DB_NOTAS_COMPARTIDAS[orden]) { let n = DB_NOTAS_COMPARTIDAS[orden]; return { comentario: n.comentario || '', observaciones: n.observaciones || '', fecha: n.fecha || '', modificado_por: n.modificado_por || '' }; }
-    return { comentario: '', observaciones: '', fecha: '', modificado_por: '' };
-}
-
+// =========================================================
+// SECCIÓN 6: PROCESAMIENTO DE DATOS (CORE)
+// =========================================================
 function analizarDatos(datos) {
     let secciones = { 'S': { titulo: 'Siniestros (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'N': { titulo: 'Normales', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'V': { titulo: 'Ventas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'I': { titulo: 'Internas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'G': { titulo: 'Garantías', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 } };
     let global = { total: 0, ok: 0, warn: 0, alert: 0, dinero: 0, dineroAlert: 0 };
@@ -253,6 +247,10 @@ function generarTablaEmail(secciones) {
     document.getElementById('tabla-resumen-container').innerHTML = html + `</tbody></table>`;
 }
 
+
+// =========================================================
+// SECCIÓN 7: RENDERIZADO DE TABLEROS Y SECCIONES
+// =========================================================
 window.cambiarOrden = function(key, modo) { SORT_STATE[key] = modo; renderizarTablaSeccion(key); };
 window.toggleCard = function(id, event) { if (event.target.tagName === 'TH' || event.target.tagName === 'I' || event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') return; document.getElementById(id).classList.toggle('collapsed'); };
 
@@ -282,38 +280,37 @@ function renderizarTablaSeccion(key) {
     document.getElementById(`table-container-${key}`).innerHTML = html + `</tbody></table>`;
 }
 
-// ==========================================
-// SECCIÓN 6: MODALES Y COMENTARIOS GENERALES
-// ==========================================
-function abrirAjustes() { let pwd = prompt("Acceso Restringido (Súper Administrador):"); if(pwd === '2099') { document.getElementById('settingsModal').style.display = 'block'; } else { alert("Acceso denegado."); } }
-function guardarUsuario() {
-    let pass = document.getElementById('set-pass').value.trim(), nombre = document.getElementById('set-nombre').value.trim(), rol = document.getElementById('set-rol').value, secciones = Array.from(document.querySelectorAll('.chk-sec:checked')).map(cb => cb.value);
-    if(!pass || !nombre) return;
-    database.ref('usuarios/' + pass).set({ nombre: nombre, rol: rol, secciones: secciones }).then(() => { mostrarToast("Usuario guardado"); document.getElementById('set-pass').value = ''; document.getElementById('set-nombre').value = ''; document.querySelectorAll('.chk-sec').forEach(cb => cb.checked = false); });
-}
-window.eliminarUsuario = function(pwd) { if(confirm("¿Eliminar usuario?")) { database.ref('usuarios/' + pwd).remove().then(() => mostrarToast("Usuario eliminado")); } };
-function renderizarTablaUsuarios() { 
-    let tbody = document.getElementById('tabla-usuarios-body'); 
-    if(!tbody) return; 
-    tbody.innerHTML = ''; 
-    
-    for (let pwd in DB_USUARIOS) { 
-        let u = DB_USUARIOS[pwd]; 
-        let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
-        let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca";
 
-        tbody.innerHTML += `<tr>
-            <td><strong>${pwd}</strong></td>
-            <td>${u.nombre}</td>
-            <td>${u.rol}</td>
-            <td>${secStr}</td>
-            <td style="font-weight: bold; color: var(--grey); font-size: 0.9em;">${ultimoAcceso}</td>
-            <td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')" title="Eliminar"><i class="fas fa-trash"></i></button></td>
-        </tr>`; 
-    } 
+// =========================================================
+// SECCIÓN 8: GESTIÓN DE NOTAS EN CELDAS (ORDENES)
+// =========================================================
+window.guardarDatosNota = function(orden, campo, valor) {
+    orden = orden.toUpperCase().trim(); let letraOrden = orden.charAt(0);
+    if (campo === 'comentario' && !IS_ADMIN) { mostrarToast("Solo Admin edita Seguimiento.", "fa-lock"); renderizarTablaSeccion(letraOrden); return; }
+    if (campo === 'observaciones' && !IS_ADMIN && !ALLOWED_SECTIONS.includes(letraOrden)) { mostrarToast("Sin permisos aquí.", "fa-lock"); renderizarTablaSeccion(letraOrden); return; }
+
+    let updates = {}; updates['notas/' + orden + '/' + campo] = valor;
+    updates['notas/' + orden + '/fecha'] = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit' });
+    if (campo === 'observaciones') { updates['notas/' + orden + '/modificado_por'] = USER_NAME; }
+    database.ref().update(updates).then(() => mostrarToast("Guardado", "fa-check"));
+};
+
+function leerDatosNota(orden) {
+    if (DB_NOTAS_COMPARTIDAS && DB_NOTAS_COMPARTIDAS[orden]) { let n = DB_NOTAS_COMPARTIDAS[orden]; return { comentario: n.comentario || '', observaciones: n.observaciones || '', fecha: n.fecha || '', modificado_por: n.modificado_por || '' }; }
+    return { comentario: '', observaciones: '', fecha: '', modificado_por: '' };
 }
 
-// Función para enviar Comentarios Generales al Tablero
+function actualizarListasDesplegables() { 
+    let com = new Set(), obs = new Set(); Object.values(DB_NOTAS_COMPARTIDAS || {}).forEach(i => { if(i.comentario) com.add(i.comentario); if(i.observaciones) obs.add(i.observaciones); }); 
+    let dlC = document.getElementById('list-comentarios'), dlO = document.getElementById('list-observaciones'); 
+    if(dlC) { dlC.innerHTML = ''; com.forEach(c => dlC.innerHTML += `<option value="${c}">`); } 
+    if(dlO) { dlO.innerHTML = ''; obs.forEach(c => dlO.innerHTML += `<option value="${c}">`); } 
+}
+
+
+// =========================================================
+// SECCIÓN 9: TABLERO GENERAL DE AVISOS
+// =========================================================
 function enviarComentarioGeneral() {
     let input = document.getElementById('new-general-comment');
     let texto = input.value.trim();
@@ -324,21 +321,22 @@ function enviarComentarioGeneral() {
 
     let fechaActual = new Date().toLocaleString('es-MX', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
     
-    database.ref('comentarios_generales').push({
-        autor: USER_NAME,
-        texto: texto,
-        fecha: fechaActual,
-        timestamp: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
-        input.value = '';
-        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar'; }
-    }).catch(err => {
-        alert("Error al enviar mensaje: " + err.message);
-        if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar'; }
-    });
+    database.ref('comentarios_generales').push({ autor: USER_NAME, texto: texto, fecha: fechaActual, timestamp: firebase.database.ServerValue.TIMESTAMP })
+    .then(() => { input.value = ''; if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar'; } })
+    .catch(err => { alert("Error al enviar: " + err.message); if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fas fa-paper-plane"></i> Enviar'; } });
 }
 
-window.abrirMenuFiltroColumna = function(event, sectionKey) { event.stopPropagation(); ACTIVE_FILTER_SECTION = sectionKey; document.getElementById('filter-section-title').innerText = DATOS_GLOBALES[sectionKey] ? DATOS_GLOBALES[sectionKey].titulo : sectionKey; let estatusSet = new Set(); RAW_EXCEL_DATA.forEach(fila => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1 && orden.charAt(0) === sectionKey) { estatusSet.add(leerDatosNota(orden).comentario ? leerDatosNota(orden).comentario.trim() : "(Vacío)"); } }); let contenedor = document.getElementById('floatingFilterList'); contenedor.innerHTML = `<label class="filter-item" style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px;"><input type="checkbox" id="chkAllFiltro" onchange="window.toggleAllFiltros(this)"><strong>(Seleccionar Todo)</strong></label>`; let seccionOcultos = FILTROS_POR_SECCION[sectionKey] || new Set(); Array.from(estatusSet).sort().forEach(est => { contenedor.innerHTML += `<label class="filter-item"><input type="checkbox" class="chk-filtro-item" value="${est}" ${seccionOcultos.has(est) ? "" : "checked"} onchange="window.updateChkAll()"><span>${est}</span></label>`; }); let menu = document.getElementById('floatingFilter'); menu.style.display = 'block'; menu.style.left = Math.max(10, event.pageX - 150) + "px"; menu.style.top = (event.pageY + 15) + "px"; window.updateChkAll(); }
+
+// =========================================================
+// SECCIÓN 10: SISTEMA DE FILTROS FLOTANTES
+// =========================================================
+window.abrirMenuFiltroColumna = function(event, sectionKey) { 
+    event.stopPropagation(); ACTIVE_FILTER_SECTION = sectionKey; document.getElementById('filter-section-title').innerText = DATOS_GLOBALES[sectionKey] ? DATOS_GLOBALES[sectionKey].titulo : sectionKey; 
+    let estatusSet = new Set(); RAW_EXCEL_DATA.forEach(fila => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1 && orden.charAt(0) === sectionKey) { estatusSet.add(leerDatosNota(orden).comentario ? leerDatosNota(orden).comentario.trim() : "(Vacío)"); } }); 
+    let contenedor = document.getElementById('floatingFilterList'); contenedor.innerHTML = `<label class="filter-item" style="border-bottom:1px solid var(--border-color); padding-bottom:8px; margin-bottom:8px;"><input type="checkbox" id="chkAllFiltro" onchange="window.toggleAllFiltros(this)"><strong>(Seleccionar Todo)</strong></label>`; 
+    let seccionOcultos = FILTROS_POR_SECCION[sectionKey] || new Set(); Array.from(estatusSet).sort().forEach(est => { contenedor.innerHTML += `<label class="filter-item"><input type="checkbox" class="chk-filtro-item" value="${est}" ${seccionOcultos.has(est) ? "" : "checked"} onchange="window.updateChkAll()"><span>${est}</span></label>`; }); 
+    let menu = document.getElementById('floatingFilter'); menu.style.display = 'block'; menu.style.left = Math.max(10, event.pageX - 150) + "px"; menu.style.top = (event.pageY + 15) + "px"; window.updateChkAll(); 
+}
 window.toggleAllFiltros = function(source) { document.querySelectorAll('.chk-filtro-item').forEach(chk => chk.checked = source.checked); }
 window.updateChkAll = function() { let chkAll = document.getElementById('chkAllFiltro'); if(chkAll) chkAll.checked = Array.from(document.querySelectorAll('.chk-filtro-item')).every(chk => chk.checked); }
 function cerrarMenuFiltro() { document.getElementById('floatingFilter').style.display = 'none'; ACTIVE_FILTER_SECTION = null; }
@@ -346,13 +344,39 @@ function actualizarBannerFiltros() { let banner = document.getElementById('activ
 function aplicarFiltroFlotante() { if (!ACTIVE_FILTER_SECTION) return; FILTROS_POR_SECCION[ACTIVE_FILTER_SECTION] = new Set(); document.querySelectorAll('.chk-filtro-item').forEach(chk => { if (!chk.checked) FILTROS_POR_SECCION[ACTIVE_FILTER_SECTION].add(chk.value); }); localStorage.setItem('hyundai_filtros_seccion', JSON.stringify(Object.fromEntries(Object.entries(FILTROS_POR_SECCION).map(([k,v]) => [k, Array.from(v)])))); cerrarMenuFiltro(); if (RAW_EXCEL_DATA) analizarDatos(RAW_EXCEL_DATA); }
 function limpiarFiltrosFlotantes() { FILTROS_POR_SECCION = {}; localStorage.removeItem('hyundai_filtros_seccion'); if (RAW_EXCEL_DATA) analizarDatos(RAW_EXCEL_DATA); }
 
+
+// =========================================================
+// SECCIÓN 11: MODAL DE GRÁFICAS Y DESGLOSE
+// =========================================================
 window.abrirGraficas = function(key, titulo) { CURRENT_SECTION_KEY = key; document.getElementById('modalTitle').innerText = "Análisis: " + titulo; document.getElementById('kpiModal').style.display = "block"; document.getElementById('modalMainView').style.display = "block"; document.getElementById('modalDetailView').style.display = "none"; document.getElementById('modalFiltroSemaforo').value = 'todos'; aplicarFiltroModal(); }
 function aplicarFiltroModal() { let filtro = document.getElementById('modalFiltroSemaforo').value, ordenes = DATOS_GLOBALES[CURRENT_SECTION_KEY].ordenes.filter(o => filtro === 'todos' || o.semaforo === filtro), cs = {}, co = {}, ca = {}; ordenes.forEach(o => { let s1 = o.comentario ? o.comentario.trim() : "Sin Estatus", s2 = o.observaciones ? o.observaciones.trim() : "Sin Comentario", s3 = o.asesor || "Sin Asignar"; cs[s1===""?"Sin Estatus":s1] = (cs[s1===""?"Sin Estatus":s1] || 0) + 1; co[s2===""?"Sin Comentario":s2] = (co[s2===""?"Sin Comentario":s2] || 0) + 1; ca[s3] = (ca[s3] || 0) + 1; }); const gh = (obj, t, clr) => { let r = `<table class="modal-table"><thead><tr><th>Categoría</th><th>Cantidad</th></tr></thead><tbody>`; Object.entries(obj).sort((a,b)=>b[1]-a[1]).forEach(([s,c]) => r += `<tr onclick="window.verDetalleFiltrado('${t}', '${s}')"><td>${s}</td><td><span class="count-badge" style="background:${clr};">${c}</span></td></tr>`); return Object.keys(obj).length ? r + `</tbody></table>` : "<p>No hay datos.</p>"; }; document.getElementById('tableEstatusContainer').innerHTML = gh(cs, 'comentario', 'var(--grey)'); document.getElementById('tableObservacionesContainer').innerHTML = gh(co, 'observaciones', 'var(--green)'); document.getElementById('tableAsesorContainer').innerHTML = gh(ca, 'asesor', 'var(--h-blue)'); }
 window.verDetalleFiltrado = function(tipo, valor) { document.getElementById('modalMainView').style.display = "none"; document.getElementById('modalDetailView').style.display = "block"; let filtro = document.getElementById('modalFiltroSemaforo').value; document.getElementById('detalleTitulo').innerText = `Filtrado por: ${valor}`; let html = `<table id="tabla-detalle-copiar" class="track-table"><thead><tr><th>Orden</th><th>Cliente</th><th>Asesor</th><th>Días</th><th>Importe</th><th>Seguimiento</th><th>Comentarios</th></tr></thead><tbody>`; DATOS_GLOBALES[CURRENT_SECTION_KEY].ordenes.filter(o => { if(filtro !== 'todos' && o.semaforo !== filtro) return false; let val = tipo === 'asesor' ? (o.asesor||"Sin") : (tipo === 'comentario' ? (o.comentario||"Sin") : (o.observaciones||"Sin")); return val.trim() === valor || (val.trim()==="" && valor.startsWith("Sin")); }).sort((a, b) => b.dias - a.dias).forEach(o => { html += `<tr style="background-color:${getPastelColor(o.comentario)}"><td>${o.orden}</td><td>${o.nombre}</td><td>${o.asesor}</td><td>${o.dias}</td><td>${moneyFormat.format(o.importe)}</td><td>${o.comentario || '-'}</td><td>${o.observaciones || '-'}</td></tr>`; }); document.getElementById('detalleTablaContainer').innerHTML = html + `</tbody></table>`; }
-
 function volverVistaPrincipal() { document.getElementById('modalDetailView').style.display = "none"; document.getElementById('modalMainView').style.display = "block"; }
 function cerrarModal() { document.getElementById('kpiModal').style.display = "none"; }
-function actualizarListasDesplegables() { let com = new Set(), obs = new Set(); Object.values(DB_NOTAS_COMPARTIDAS || {}).forEach(i => { if(i.comentario) com.add(i.comentario); if(i.observaciones) obs.add(i.observaciones); }); let dlC = document.getElementById('list-comentarios'), dlO = document.getElementById('list-observaciones'); if(dlC) { dlC.innerHTML = ''; com.forEach(c => dlC.innerHTML += `<option value="${c}">`); } if(dlO) { dlO.innerHTML = ''; obs.forEach(c => dlO.innerHTML += `<option value="${c}">`); } }
+
+
+// =========================================================
+// SECCIÓN 12: GESTIÓN DE USUARIOS (ADMINISTRADOR)
+// =========================================================
+function abrirAjustes() { let pwd = prompt("Acceso Restringido (Súper Administrador):"); if(pwd === '2099') { document.getElementById('settingsModal').style.display = 'block'; } else { alert("Acceso denegado."); } }
+function guardarUsuario() {
+    let pass = document.getElementById('set-pass').value.trim(), nombre = document.getElementById('set-nombre').value.trim(), rol = document.getElementById('set-rol').value, secciones = Array.from(document.querySelectorAll('.chk-sec:checked')).map(cb => cb.value);
+    if(!pass || !nombre) return;
+    database.ref('usuarios/' + pass).set({ nombre: nombre, rol: rol, secciones: secciones }).then(() => { mostrarToast("Usuario guardado"); document.getElementById('set-pass').value = ''; document.getElementById('set-nombre').value = ''; document.querySelectorAll('.chk-sec').forEach(cb => cb.checked = false); });
+}
+window.eliminarUsuario = function(pwd) { if(confirm("¿Eliminar usuario?")) { database.ref('usuarios/' + pwd).remove().then(() => mostrarToast("Usuario eliminado")); } };
+function renderizarTablaUsuarios() { 
+    let tbody = document.getElementById('tabla-usuarios-body'); if(!tbody) return; tbody.innerHTML = ''; 
+    for (let pwd in DB_USUARIOS) { 
+        let u = DB_USUARIOS[pwd]; let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna"; let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca";
+        tbody.innerHTML += `<tr><td><strong>${pwd}</strong></td><td>${u.nombre}</td><td>${u.rol}</td><td>${secStr}</td><td style="font-weight: bold; color: var(--grey); font-size: 0.9em;">${ultimoAcceso}</td><td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')" title="Eliminar"><i class="fas fa-trash"></i></button></td></tr>`; 
+    } 
+}
+
+
+// =========================================================
+// SECCIÓN 13: EXPORTACIÓN Y PORTAPAPELES
+// =========================================================
 function copiarTabla() { let range = document.createRange(); range.selectNode(document.getElementById('tabla-para-copiar')); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); mostrarToast("Copiado al portapapeles"); }
 function copiarTablaDetalle() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; let range = document.createRange(); range.selectNode(tabla); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); }
 function exportarAExcel() { if (!RAW_EXCEL_DATA || RAW_EXCEL_DATA.length === 0) return; let dataAExportar = RAW_EXCEL_DATA.reduce((acc, fila) => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1) { let notas = leerDatosNota(orden); let estatus = notas.comentario ? notas.comentario.trim() : "(Vacío)"; if (!(FILTROS_POR_SECCION[orden.charAt(0)] || new Set()).has(estatus)) acc.push({ ...fila, 'Seguimiento': notas.comentario || '', 'Comentarios': notas.observaciones || '', 'Autor Comentario': notas.modificado_por || '', 'Fecha Mod.': notas.fecha || '' }); } return acc; }, []); let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataAExportar), "Seguimiento"); XLSX.writeFile(wb, "Reporte_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
