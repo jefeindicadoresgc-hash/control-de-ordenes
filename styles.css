@@ -128,17 +128,8 @@ body {
     line-height: 0.9; 
 }
 
-.main-title { 
-    font-size: clamp(2.8rem, 5.5rem, 6.5rem); 
-    letter-spacing: -0.05em; 
-    margin-bottom: 0.1em; 
-}
-
-.sub-title { 
-    font-size: clamp(1.3rem, 2.8rem, 3.2rem); 
-    letter-spacing: 0.2em; 
-    margin-bottom: 0.5em; 
-}
+.main-title { font-size: clamp(2.8rem, 5.5rem, 6.5rem); letter-spacing: -0.05em; margin-bottom: 0.1em; }
+.sub-title { font-size: clamp(1.3rem, 2.8rem, 3.2rem); letter-spacing: 0.2em; margin-bottom: 0.5em; }
 
 .letter { 
     position: relative; 
@@ -153,59 +144,15 @@ body {
 }
 
 .letter::before, .letter::after { 
-    content: attr(data-char); 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    color: transparent; 
-    pointer-events: none; 
+    content: attr(data-char); position: absolute; top: 0; left: 0; color: transparent; pointer-events: none; 
 }
 
-.letter::before { 
-    -webkit-text-stroke: 1px rgba(255, 50, 50, 0.7); 
-    transform: translate(2px, -2px) rotate(-1.5deg); 
-    z-index: -1; 
-    animation: sketchJitter 0.18s infinite alternate; 
-}
+.letter::before { -webkit-text-stroke: 1px rgba(255, 50, 50, 0.7); transform: translate(2px, -2px) rotate(-1.5deg); z-index: -1; animation: sketchJitter 0.18s infinite alternate; }
+.letter::after { -webkit-text-stroke: 1px rgba(200, 0, 0, 0.5); transform: translate(-2px, 1px) rotate(1.5deg); z-index: -2; animation: sketchJitter2 0.2s infinite alternate; }
 
-.letter::after { 
-    -webkit-text-stroke: 1px rgba(200, 0, 0, 0.5); 
-    transform: translate(-2px, 1px) rotate(1.5deg); 
-    z-index: -2; 
-    animation: sketchJitter2 0.2s infinite alternate; 
-}
-
-.neon-line { 
-    position: relative; 
-    width: 0%; 
-    height: 2px; 
-    background: transparent; 
-    margin: 0.5em 0; 
-    display: flex; 
-    align-items: center; 
-    justify-content: center; 
-    animation: lineReveal var(--reset-time) cubic-bezier(0.8, 0, 0.2, 1) infinite; 
-}
-
-.neon-line-inner { 
-    width: 100%; 
-    height: 100%; 
-    border-top: 1px solid #f00; 
-    border-bottom: 1px solid #f00; 
-    box-shadow: 0 0 5px #f00, 0 0 10px #f00, 0 0 20px #a00, inset 0 0 2px #f00; 
-}
-
-.caption { 
-    font-family: sans-serif; 
-    font-size: 0.8rem; 
-    color: #ff3333; 
-    letter-spacing: 0.4em; 
-    text-transform: uppercase; 
-    margin-top: 2em; 
-    opacity: 0; 
-    text-shadow: 0 0 5px #f00; 
-    animation: captionFade var(--reset-time) infinite; 
-}
+.neon-line { position: relative; width: 0%; height: 2px; background: transparent; margin: 0.5em 0; display: flex; align-items: center; justify-content: center; animation: lineReveal var(--reset-time) cubic-bezier(0.8, 0, 0.2, 1) infinite; }
+.neon-line-inner { width: 100%; height: 100%; border-top: 1px solid #f00; border-bottom: 1px solid #f00; box-shadow: 0 0 5px #f00, 0 0 10px #f00, 0 0 20px #a00, inset 0 0 2px #f00; }
+.caption { font-family: sans-serif; font-size: 0.8rem; color: #ff3333; letter-spacing: 0.4em; text-transform: uppercase; margin-top: 2em; opacity: 0; text-shadow: 0 0 5px #f00; animation: captionFade var(--reset-time) infinite; }
 
 /* Animaciones de Ambiente */
 @keyframes letterIntro { 
@@ -213,43 +160,14 @@ body {
     30%, 68% { opacity: 1; filter: blur(0); transform: translate(0, 0) rotate(0deg) scale(1); } 
     92%, 100% { opacity: 0; filter: blur(12px); transform: translate(var(--x), var(--y)) rotate(var(--r)) scale(1.5); } 
 }
-@keyframes lineReveal { 
-    0%, 16% { width: 0%; opacity: 0; } 
-    36%, 68% { width: 110%; opacity: 1; } 
-    84%, 100% { width: 0%; opacity: 0; } 
-}
-@keyframes captionFade { 
-    0%, 36% { opacity: 0; } 
-    48%, 68% { opacity: 0.8; } 
-    84%, 100% { opacity: 0; } 
-}
-@keyframes glowBreathing { 
-    0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; } 
-    100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } 
-}
-@keyframes neonFlicker { 
-    0%, 30%, 62%, 100% { opacity: 1; } 
-    20%, 64% { opacity: 0.35; } 
-    92%, 100% { opacity: 0; } 
-}
-@keyframes sketchJitter { 
-    0% { transform: translate(2px, -2px) rotate(-1.5deg); } 
-    100% { transform: translate(3px, -1px) rotate(-1deg); } 
-}
-@keyframes sketchJitter2 { 
-    0% { transform: translate(-2px, 1px) rotate(1.5deg); } 
-    100% { transform: translate(-3px, 2px) rotate(1deg); } 
-}
-@keyframes noiseJitter {
-    0% { background-position: 0 0, 7.5px 7.5px; }
-    50% { background-position: 2px -2px, 5.5px 9.5px; }
-    100% { background-position: -2px 2px, 9.5px 5.5px; }
-}
-@keyframes dustDrift {
-    0% { transform: translateY(0) translateX(0); }
-    100% { transform: translateY(-12rem) translateX(5rem); }
-}
-
+@keyframes lineReveal { 0%, 16% { width: 0%; opacity: 0; } 36%, 68% { width: 110%; opacity: 1; } 84%, 100% { width: 0%; opacity: 0; } }
+@keyframes captionFade { 0%, 36% { opacity: 0; } 48%, 68% { opacity: 0.8; } 84%, 100% { opacity: 0; } }
+@keyframes glowBreathing { 0% { transform: translate(-50%, -50%) scale(1); opacity: 0.7; } 100% { transform: translate(-50%, -50%) scale(1.1); opacity: 1; } }
+@keyframes neonFlicker { 0%, 30%, 62%, 100% { opacity: 1; } 20%, 64% { opacity: 0.35; } 92%, 100% { opacity: 0; } }
+@keyframes sketchJitter { 0% { transform: translate(2px, -2px) rotate(-1.5deg); } 100% { transform: translate(3px, -1px) rotate(-1deg); } }
+@keyframes sketchJitter2 { 0% { transform: translate(-2px, 1px) rotate(1.5deg); } 100% { transform: translate(-3px, 2px) rotate(1deg); } }
+@keyframes noiseJitter { 0% { background-position: 0 0, 7.5px 7.5px; } 50% { background-position: 2px -2px, 5.5px 9.5px; } 100% { background-position: -2px 2px, 9.5px 5.5px; } }
+@keyframes dustDrift { 0% { transform: translateY(0) translateX(0); } 100% { transform: translateY(-12rem) translateX(5rem); } }
 /* ==========================================
    SECCIÓN 3: INPUT CYBERPUNK (TEMA ROJO)
    ========================================== */
