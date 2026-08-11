@@ -12,8 +12,8 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- El ?v=9 fuerza al navegador a cargar el nuevo diseño de botones y tablero -->
-    <link rel="stylesheet" href="styles.css?v=9">
+    <!-- El ?v=8 fuerza al navegador a recargar el diseño y evitar la pantalla en blanco -->
+    <link rel="stylesheet" href="styles.css?v=8">
     <script src="app.js" defer></script>
 </head>
 <body>
@@ -22,7 +22,7 @@
 <!-- SECCIÓN 2: PANTALLA DE LOGIN (TEMA ROJO)   -->
 <!-- ========================================== -->
 <div id="login-overlay">
-    <!-- El fondo Matrix se genera desde app.js -->
+    <!-- El fondo Matrix ahora se genera mágicamente desde app.js para no ensuciar el HTML -->
     <div class="jp-matrix" id="matrix-bg"></div>
 
     <div class="uiverse-title-pattern">
@@ -146,27 +146,9 @@
     <div id="email-section" class="email-section">
         <div class="email-header">
             <h3><i class="fas fa-envelope-open-text"></i> Resumen Ejecutivo (Para Correo)</h3>
-            <button class="btn btn-copy" id="btn-copy-summary"><i class="fas fa-copy"></i> Copiar Tabla</button>
+            <button class="copy-btn" id="btn-copy-summary"><i class="fas fa-copy"></i> Copiar Tabla</button>
         </div>
         <div id="tabla-resumen-container" class="table-responsive"></div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- TABLERO DE AVISOS Y COMENTARIOS            -->
-    <!-- ========================================== -->
-    <div id="general-comments-board" class="comments-board">
-        <div class="comments-header">
-            <h3><i class="fas fa-bullhorn"></i> Tablero de Avisos Generales</h3>
-            <span class="comments-subtitle">Visible para todo el equipo</span>
-        </div>
-        <div class="comments-list" id="comments-list">
-            <!-- Los comentarios se insertarán aquí dinámicamente -->
-            <p style="color:var(--grey); font-size:0.9em; text-align:center; margin-top:10px;">Cargando comentarios...</p>
-        </div>
-        <div class="comments-input-area">
-            <input type="text" id="new-general-comment" placeholder="Escribe un aviso, nota o actualización para el equipo..." autocomplete="off">
-            <button id="btn-send-comment" class="btn btn-send"><i class="fas fa-paper-plane"></i> Enviar</button>
-        </div>
     </div>
 
     <div id="dashboard" class="grid-container"></div>
@@ -217,8 +199,8 @@
             <div class="email-header modal-detail-header">
                 <h3 id="detalleTitulo" class="txt-money">Detalle Filtrado</h3>
                 <div class="flex-gap">
-                    <button class="btn btn-copy" id="btn-copy-detail"><i class="fas fa-copy"></i> Copiar Lista</button>
-                    <button class="btn btn-excel btn-sm" id="btn-export-detail"><i class="fas fa-file-excel"></i> Excel</button>
+                    <button class="copy-btn" id="btn-copy-detail"><i class="fas fa-copy"></i> Copiar Lista</button>
+                    <button class="btn-excel btn-sm" id="btn-export-detail"><i class="fas fa-file-excel"></i> Excel</button>
                 </div>
             </div>
             <div id="detalleTablaContainer" class="table-responsive"></div>
@@ -261,7 +243,7 @@
                     <th>Nombre</th>
                     <th>Rol</th>
                     <th>Secciones</th>
-                    <th>Último Acceso</th>
+                    <th>Último Acceso</th> <!-- Nueva columna de acceso -->
                     <th>Acción</th>
                 </tr>
             </thead>
