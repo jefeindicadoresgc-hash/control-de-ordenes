@@ -1,27 +1,30 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <!-- ========================================== -->
-    <!-- SECCIÓN 1: CONFIGURACIÓN Y LIBRERÍAS       -->
-    <!-- ========================================== -->
+    <!-- ========================================================= -->
+    <!-- SECCIÓN 1: CABECERA DEL DOCUMENTO (HEAD)                  -->
+    <!-- ========================================================= -->
     <meta charset="UTF-8">
     <title>Control de Órdenes - Hyundai Coatza</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Librerías Externas -->
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
-    <!-- El ?v=8 fuerza al navegador a recargar el diseño y evitar la pantalla en blanco -->
-    <link rel="stylesheet" href="styles.css?v=8">
+    <!-- Archivos Locales (?v=11 para forzar la limpieza de caché) -->
+    <link rel="stylesheet" href="styles.css?v=11">
     <script src="app.js" defer></script>
 </head>
 <body>
 
-<!-- ========================================== -->
-<!-- SECCIÓN 2: PANTALLA DE LOGIN (TEMA ROJO)   -->
-<!-- ========================================== -->
+<!-- ========================================================= -->
+<!-- SECCIÓN 2: PANTALLA DE BLOQUEO / LOGIN (TEMA ROJO NEÓN)   -->
+<!-- ========================================================= -->
 <div id="login-overlay">
+    
     <div class="uiverse-title-pattern">
         <div class="bg-glow"></div>
         <div class="bg-noise"></div>
@@ -64,7 +67,7 @@
             <div class="caption">COATZA | CONTROL DE ÓRDENES</div>
         </div>
 
-        <!-- Formulario Red Glow -->
+        <!-- Formulario de Acceso -->
         <div class="login-hologram">
             <div id="poda">
                 <div class="glow"></div>
@@ -74,7 +77,7 @@
                 <div class="white"></div>
                 <div class="border"></div>
                 <div id="main">
-                    <input placeholder="Clave de Acceso..." type="password" id="pass-input" class="input" />
+                    <input placeholder="Clave de Acceso..." type="password" id="pass-input" class="input" autocomplete="off"/>
                     <div id="input-mask"></div>
                     <div id="pink-mask"></div>
                     <div class="filterBorder"></div>
@@ -95,10 +98,11 @@
         </div>
     </div>
 </div>
-<!-- ========================================== -->
-<!-- SECCIÓN 3: CABECERA Y RESUMEN (DASHBOARD)  -->
-<!-- ========================================== -->
+
 <div class="container" id="main-app">
+    <!-- ========================================================= -->
+    <!-- SECCIÓN 3: BARRA DE NAVEGACIÓN (HEADER)                   -->
+    <!-- ========================================================= -->
     <header>
         <div class="header-left">
             <div class="header-brand">
@@ -114,23 +118,28 @@
                 </label>
                 <div class="sync-status">Última carga: <span id="ultima-carga-fecha">Buscando...</span></div>
             </div>
-            <button class="btn btn-save" id="btn-settings" style="display: none;"><i class="fas fa-users-cog"></i> Ajustes</button>
+            <button class="btn btn-settings" id="btn-settings" style="display: none;"><i class="fas fa-users-cog"></i> Ajustes</button>
             <button class="btn btn-save" id="btn-sync"><i class="fas fa-cloud"></i> Sincronizado</button>
             <button class="btn btn-excel" id="btn-export"><i class="fas fa-file-excel"></i> Exportar</button>
         </div>
     </header>
 
+    <!-- ESTADO VACÍO (Cuando no hay Excel) -->
     <div id="empty-state" class="empty-state" style="display: none;">
         <i class="fas fa-folder-open empty-icon"></i>
         <h2>Base de datos vacía</h2>
         <p>Carga el reporte de Excel para comenzar.</p>
     </div>
 
+    <!-- BANNER DE ALERTAS DE FILTROS ACTIVOS -->
     <div id="active-filters-banner" class="filter-banner">
         <div><i class="fas fa-exclamation-triangle"></i> Tienes filtros activos en <span id="filtros-seccion"></span>. Ocultando <span id="filtros-count">0</span> estatus.</div>
         <button class="btn btn-outline-danger" id="btn-clear-filters"><i class="fas fa-times"></i> Quitar Filtros</button>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- SECCIÓN 4: INDICADORES CLAVE (KPIs)                       -->
+    <!-- ========================================================= -->
     <div id="summary-panel" class="summary-panel">
         <div class="kpi-card total"><div class="kpi-label">Total Órdenes</div><div class="kpi-value" id="kpi-total-ops">0</div></div>
         <div class="kpi-card ok"><div class="kpi-label">&lt; 15 Días</div><div class="kpi-value txt-ok" id="kpi-ok-ops">0</div></div>
@@ -139,20 +148,43 @@
         <div class="kpi-card money"><div class="kpi-label">Dinero Total (S/IVA)</div><div class="kpi-value txt-money" id="kpi-money">0</div><div class="kpi-sub" id="kpi-money-sub"></div></div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- SECCIÓN 5: RESUMEN EJECUTIVO (CORREO)                     -->
+    <!-- ========================================================= -->
     <div id="email-section" class="email-section">
         <div class="email-header">
             <h3><i class="fas fa-envelope-open-text"></i> Resumen Ejecutivo (Para Correo)</h3>
-            <button class="copy-btn" id="btn-copy-summary"><i class="fas fa-copy"></i> Copiar Tabla</button>
+            <button class="btn btn-copy" id="btn-copy-summary"><i class="fas fa-copy"></i> Copiar Tabla</button>
         </div>
         <div id="tabla-resumen-container" class="table-responsive"></div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- SECCIÓN 6: TABLERO DE AVISOS Y COMENTARIOS                -->
+    <!-- ========================================================= -->
+    <div id="general-comments-board" class="comments-board">
+        <div class="comments-header">
+            <h3><i class="fas fa-bullhorn"></i> Tablero de Avisos Generales</h3>
+            <span class="comments-subtitle">Visible para todo el equipo</span>
+        </div>
+        <div class="comments-list" id="comments-list">
+            <p style="color:var(--grey); font-size:0.9em; text-align:center; margin-top:10px;">Cargando comentarios...</p>
+        </div>
+        <div class="comments-input-area">
+            <input type="text" id="new-general-comment" placeholder="Escribe un aviso, nota o actualización para el equipo..." autocomplete="off">
+            <button id="btn-send-comment" class="btn btn-send"><i class="fas fa-paper-plane"></i> Enviar</button>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- SECCIÓN 7: TABLERO PRINCIPAL DE ÓRDENES                   -->
+    <!-- ========================================================= -->
     <div id="dashboard" class="grid-container"></div>
 </div>
 
-<!-- ========================================== -->
-<!-- SECCIÓN 4: MODALES Y MENÚS FLOTANTES       -->
-<!-- ========================================== -->
+<!-- ========================================================= -->
+<!-- SECCIÓN 8: MENÚ FLOTANTE DE FILTROS                       -->
+<!-- ========================================================= -->
 <datalist id="list-comentarios"></datalist>
 <datalist id="list-observaciones"></datalist>
 
@@ -167,10 +199,14 @@
     </div>
 </div>
 
+<!-- ========================================================= -->
+<!-- SECCIÓN 9: MODAL DE GRÁFICAS Y DESGLOSE                   -->
+<!-- ========================================================= -->
 <div id="kpiModal" class="modal">
     <div class="modal-content">
         <span class="close-modal" id="btn-close-modal">&times;</span>
         <h2 id="modalTitle" class="modal-title">Desglose de Datos</h2>
+        
         <div class="filtro-semaforo-container">
             <label for="modalFiltroSemaforo"><i class="fas fa-filter"></i> Filtrar por Antigüedad:</label>
             <select id="modalFiltroSemaforo">
@@ -180,6 +216,7 @@
                 <option value="rojo">Solo Rojo (≥ 30 días)</option>
             </select>
         </div>
+
         <div id="modalMainView" class="modal-body-main">
             <div class="chart-details-box" style="grid-column: span 2;">
                 <p class="hint-text" style="text-align: left; margin-bottom: 10px;">(Haz clic en las filas para ver detalle filtrado)</p>
@@ -190,13 +227,14 @@
                 </div>
             </div>
         </div>
+
         <div id="modalDetailView" class="modal-body-detail">
             <button class="btn-back" id="btn-back-modal"><i class="fas fa-arrow-left"></i> Volver al Desglose</button>
             <div class="email-header modal-detail-header">
                 <h3 id="detalleTitulo" class="txt-money">Detalle Filtrado</h3>
                 <div class="flex-gap">
-                    <button class="copy-btn" id="btn-copy-detail"><i class="fas fa-copy"></i> Copiar Lista</button>
-                    <button class="btn-excel btn-sm" id="btn-export-detail"><i class="fas fa-file-excel"></i> Excel</button>
+                    <button class="btn btn-copy" id="btn-copy-detail"><i class="fas fa-copy"></i> Copiar Lista</button>
+                    <button class="btn btn-excel btn-sm" id="btn-export-detail"><i class="fas fa-file-excel"></i> Excel</button>
                 </div>
             </div>
             <div id="detalleTablaContainer" class="table-responsive"></div>
@@ -204,10 +242,14 @@
     </div>
 </div>
 
+<!-- ========================================================= -->
+<!-- SECCIÓN 10: MODAL DE CONFIGURACIÓN DE USUARIOS            -->
+<!-- ========================================================= -->
 <div id="settingsModal" class="modal">
     <div class="modal-content" style="max-width: 800px;">
         <span class="close-modal" id="btn-close-settings">&times;</span>
         <h2 class="modal-title"><i class="fas fa-users-cog"></i> Gestión de Usuarios</h2>
+        
         <div class="settings-form" style="display:grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; padding: 20px; background: var(--bg); border-radius: 8px; border: 1px solid var(--border-color);">
             <div><label class="form-label">Contraseña / Código</label><input type="text" id="set-pass" class="form-input" placeholder="Ej. YCD3"></div>
             <div><label class="form-label">Nombre Real del Usuario</label><input type="text" id="set-nombre" class="form-input" placeholder="Ej. Juan Pérez"></div>
@@ -232,6 +274,7 @@
             </div>
             <button class="btn btn-upload" style="grid-column: span 2; padding: 12px; font-size: 1.1em;" id="btn-save-user"><i class="fas fa-save"></i> Guardar Usuario</button>
         </div>
+
         <table class="track-table">
             <thead>
                 <tr>
@@ -239,7 +282,7 @@
                     <th>Nombre</th>
                     <th>Rol</th>
                     <th>Secciones</th>
-                    <th>Último Acceso</th> <!-- Nueva columna de acceso -->
+                    <th>Último Acceso</th>
                     <th>Acción</th>
                 </tr>
             </thead>
