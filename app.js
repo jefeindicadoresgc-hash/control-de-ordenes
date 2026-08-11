@@ -18,87 +18,61 @@
 </head>
 <body>
 
-<!-- ========================================== -->
-<!-- SECCIÓN 2: PANTALLA DE LOGIN (TEMA ROJO)   -->
-<!-- ========================================== -->
-<div id="login-overlay">
-    <!-- El fondo Matrix se genera desde app.js -->
-    <div class="jp-matrix" id="matrix-bg"></div>
+// ==========================================
+// SECCIÓN 2: EVENTOS DOM Y UI
+// ==========================================
+document.addEventListener("DOMContentLoaded", () => {
+    // Ya no hay letras chinas, cargamos directamente el sistema.
+    document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-    <div class="uiverse-title-pattern">
-        <div class="bg-glow"></div>
-        <div class="bg-noise"></div>
-        <div class="dust-layer"></div>
+    document.getElementById('btn-login').addEventListener('click', verificarPassword);
+    document.getElementById('pass-input').addEventListener("keypress", (e) => { if (e.key === "Enter") { e.preventDefault(); verificarPassword(); } });
 
-        <div class="doodle-layer">
-            <div class="doodle spark d1" style="top: 15%; left: 20%;"></div>
-            <div class="doodle scratch d2" style="top: 75%; left: 80%;"></div>
-            <div class="doodle dot d3" style="top: 25%; left: 75%;"></div>
-            <div class="doodle spark d4" style="top: 80%; left: 25%;"></div>
-            <div class="doodle scratch d5" style="top: 45%; left: 10%;"></div>
-            <div class="doodle dot d6" style="top: 55%; left: 90%;"></div>
-        </div>
+    document.getElementById('btn-sync').addEventListener('click', () => mostrarToast("Datos sincronizados en tiempo real.", "fa-cloud"));
+    document.getElementById('btn-export').addEventListener('click', exportarAExcel);
+    document.getElementById('input-excel').addEventListener('change', cargarExcelNube);
 
-        <div class="title-stage">
-            <div class="neon-line top-line"><div class="neon-line-inner"></div></div>
+    document.getElementById('btn-clear-filters').addEventListener('click', limpiarFiltrosFlotantes);
+    document.getElementById('btn-copy-summary').addEventListener('click', copiarTabla);
+    document.getElementById('btn-close-filter').addEventListener('click', cerrarMenuFiltro);
+    document.getElementById('btn-apply-filter').addEventListener('click', aplicarFiltroFlotante);
 
-            <div class="main-title">
-                <span class="letter" data-char="H" style="--x: -8rem; --y: -7rem; --r: -45deg; --d: 0.1s;">H</span>
-                <span class="letter" data-char="Y" style="--x: -4rem; --y: 8rem; --r: 30deg; --d: 0.4s;">Y</span>
-                <span class="letter" data-char="U" style="--x: 0rem; --y: -9rem; --r: -15deg; --d: 0.2s;">U</span>
-                <span class="letter" data-char="N" style="--x: 4rem; --y: 7rem; --r: 60deg; --d: 0.6s;">N</span>
-                <span class="letter" data-char="D" style="--x: 7rem; --y: -5rem; --r: -25deg; --d: 0.3s;">D</span>
-                <span class="letter" data-char="A" style="--x: 5rem; --y: 9rem; --r: 40deg; --d: 0.7s;">A</span>
-                <span class="letter" data-char="I" style="--x: 8rem; --y: -7rem; --r: -50deg; --d: 0.5s;">I</span>
-            </div>
+    document.getElementById('btn-close-modal').addEventListener('click', cerrarModal);
+    document.getElementById('btn-back-modal').addEventListener('click', volverVistaPrincipal);
+    document.getElementById('btn-copy-detail').addEventListener('click', copiarTablaDetalle);
+    document.getElementById('btn-export-detail').addEventListener('click', exportarDetalleAExcel);
+    document.getElementById('modalFiltroSemaforo').addEventListener('change', aplicarFiltroModal);
 
-            <div class="sub-title">
-                <span class="letter" data-char="S" style="--x: -6rem; --y: 5rem; --r: 20deg; --d: 0.8s;">S</span>
-                <span class="letter" data-char="E" style="--x: -4rem; --y: -4rem; --r: -30deg; --d: 1.1s;">E</span>
-                <span class="letter" data-char="R" style="--x: -1rem; --y: 6rem; --r: 45deg; --d: 0.9s;">R</span>
-                <span class="letter" data-char="V" style="--x: 2rem; --y: -6rem; --r: -15deg; --d: 1.3s;">V</span>
-                <span class="letter" data-char="I" style="--x: 4rem; --y: 5rem; --r: 35deg; --d: 1.0s;">I</span>
-                <span class="letter" data-char="C" style="--x: 6rem; --y: -5rem; --r: -40deg; --d: 1.4s;">C</span>
-                <span class="letter" data-char="I" style="--x: 8rem; --y: 4rem; --r: 10deg; --d: 1.2s;">I</span>
-                <span class="letter" data-char="O" style="--x: 10rem; --y: -3rem; --r: -20deg; --d: 1.5s;">O</span>
-            </div>
+    document.getElementById('btn-settings').addEventListener('click', abrirAjustes);
+    document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('settingsModal').style.display = 'none');
+    document.getElementById('btn-save-user').addEventListener('click', guardarUsuario);
 
-            <div class="neon-line bottom-line"><div class="neon-line-inner"></div></div>
-            <div class="caption">COATZA | CONTROL DE ÓRDENES</div>
-        </div>
+    // Eventos del Tablero de Comentarios
+    let btnSend = document.getElementById('btn-send-comment');
+    if(btnSend) btnSend.addEventListener('click', enviarComentarioGeneral);
+    
+    let inputComment = document.getElementById('new-general-comment');
+    if(inputComment) inputComment.addEventListener("keypress", (e) => { if (e.key === "Enter") enviarComentarioGeneral(); });
 
-        <!-- Formulario Red Glow -->
-        <div class="login-hologram">
-            <div id="poda">
-                <div class="glow"></div>
-                <div class="darkBorderBg"></div>
-                <div class="darkBorderBg"></div>
-                <div class="darkBorderBg"></div>
-                <div class="white"></div>
-                <div class="border"></div>
-                <div id="main">
-                    <input placeholder="Clave de Acceso..." type="password" id="pass-input" class="input" />
-                    <div id="input-mask"></div>
-                    <div id="pink-mask"></div>
-                    <div class="filterBorder"></div>
-                    <button id="btn-login" class="login-submit-btn">
-                        <svg preserveAspectRatio="none" height="24" width="24" viewBox="0 0 24 24" fill="none">
-                            <path d="M5 12h14M12 5l7 7-7 7" stroke="#ff3333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
-                        </svg>
-                    </button>
-                    <div id="search-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" viewBox="0 0 24 24" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" height="20" fill="none" class="feather feather-lock">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke="#ff3333"></rect>
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" stroke="#ff3333"></path>
-                        </svg>
-                    </div>
-                </div>
-            </div>
-            <p id="login-error" class="neon-error">Acceso Denegado.</p>
-        </div>
-    </div>
-</div>
+    window.onclick = function(e) { 
+        if (e.target == document.getElementById('kpiModal')) cerrarModal(); 
+        if (e.target == document.getElementById('settingsModal')) document.getElementById('settingsModal').style.display = 'none';
+        let menu = document.getElementById('floatingFilter'); 
+        if (menu.style.display === 'block' && !menu.contains(e.target) && !e.target.classList.contains('fa-filter')) { cerrarMenuFiltro(); }
+    };
+});
 
+function mostrarToast(mensaje, icono = 'fa-check-circle') {
+    let toast = document.createElement('div'); toast.className = 'toast'; toast.innerHTML = `<i class="fas ${icono}"></i> ${mensaje}`;
+    document.body.appendChild(toast); setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3000);
+}
+
+function getPastelColor(texto) {
+    if (!texto || texto.trim() === "") return ''; 
+    let hash = 0; texto = texto.toLowerCase().trim();
+    for (let i = 0; i < texto.length; i++) { hash = texto.charCodeAt(i) + ((hash << 5) - hash); }
+    return `hsl(${Math.abs(hash) % 360}, 40%, 97%)`; 
+}
 <!-- ========================================== -->
 <!-- SECCIÓN 3: CABECERA Y RESUMEN (DASHBOARD)  -->
 <!-- ========================================== -->
