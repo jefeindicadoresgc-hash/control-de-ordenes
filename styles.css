@@ -307,6 +307,10 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
 .comments-input-area input { flex: 1; padding: 12px 20px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 1em; outline: none; transition: border-color 0.3s; background: var(--bg); }
 .comments-input-area input:focus { border-color: #ec4899; background: white; }
 
+/* Botón de borrar comentario (Solo Admin) */
+.btn-delete-comment { background: transparent; border: none; color: var(--red); cursor: pointer; opacity: 0.5; transition: 0.2s; font-size: 1.1em;}
+.btn-delete-comment:hover { opacity: 1; transform: scale(1.1); }
+
 
 /* =========================================================
    SECCIÓN 5: TABLEROS DE ÓRDENES Y TABLAS
