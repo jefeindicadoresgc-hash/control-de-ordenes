@@ -101,17 +101,6 @@ function verificarPassword() {
         }
     }).catch(err => alert("Error de red: " + err.message));
 }
-    
-    database.ref('usuarios/' + input).once('value').then((snapshot) => {
-        if (snapshot.exists()) {
-            let u = snapshot.val(); USER_ROLE = u.rol; USER_NAME = u.nombre; IS_ADMIN = (u.rol === 'Administrador'); ALLOWED_SECTIONS = u.secciones || [];
-            iniciarApp();
-        } else {
-            document.getElementById('login-error').style.display = 'block';
-            setTimeout(() => document.getElementById('login-error').style.display = 'none', 3000);
-        }
-    }).catch(err => alert("Error de red: " + err.message));
-}
 
 function iniciarApp() {
     document.getElementById('login-overlay').style.display = 'none';
@@ -281,7 +270,7 @@ function renderizarTablaUsuarios() {
     for (let pwd in DB_USUARIOS) { 
         let u = DB_USUARIOS[pwd]; 
         let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
-        let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca ha entrado"; // Si no tiene fecha, dirá "Nunca"
+        let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca ha entrado";
 
         tbody.innerHTML += `<tr>
             <td><strong>${pwd}</strong></td>
