@@ -37,35 +37,37 @@ document.addEventListener("DOMContentLoaded", () => {
         matrixBg.appendChild(fragments);
     }
 
-    // 2. Fecha Actual
     document.getElementById('fecha-hoy').innerText = new Date().toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-    // 3. Listeners Principales
+    // Listeners Principales
     document.getElementById('btn-login').addEventListener('click', verificarPassword);
     document.getElementById('pass-input').addEventListener("keypress", (e) => { if (e.key === "Enter") { e.preventDefault(); verificarPassword(); } });
     document.getElementById('btn-sync').addEventListener('click', () => mostrarToast("Datos sincronizados en tiempo real.", "fa-cloud"));
     document.getElementById('btn-export').addEventListener('click', exportarAExcel);
     document.getElementById('input-excel').addEventListener('change', cargarExcelNube);
     document.getElementById('btn-clear-filters').addEventListener('click', limpiarFiltrosFlotantes);
-    document.getElementById('btn-copy-summary').addEventListener('click', copiarTabla);
     document.getElementById('btn-close-filter').addEventListener('click', cerrarMenuFiltro);
     document.getElementById('btn-apply-filter').addEventListener('click', aplicarFiltroFlotante);
     document.getElementById('btn-close-modal').addEventListener('click', cerrarModal);
     document.getElementById('btn-back-modal').addEventListener('click', volverVistaPrincipal);
-    document.getElementById('btn-copy-detail').addEventListener('click', copiarTablaDetalle);
     document.getElementById('btn-export-detail').addEventListener('click', exportarDetalleAExcel);
     document.getElementById('modalFiltroSemaforo').addEventListener('change', aplicarFiltroModal);
     document.getElementById('btn-settings').addEventListener('click', abrirAjustes);
     document.getElementById('btn-close-settings').addEventListener('click', () => document.getElementById('settingsModal').style.display = 'none');
     document.getElementById('btn-save-user').addEventListener('click', guardarUsuario);
 
-    // 4. Tablero de Avisos
+    // NUEVO: Mostrar Panel de Inactividad
+    document.getElementById('btn-activity').addEventListener('click', () => {
+        let panel = document.getElementById('activity-panel');
+        panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+    });
+
+    // Tablero de Avisos
     let btnSend = document.getElementById('btn-send-comment');
     if(btnSend) btnSend.addEventListener('click', enviarComentarioGeneral);
     let inputComment = document.getElementById('new-general-comment');
     if(inputComment) inputComment.addEventListener("keypress", (e) => { if (e.key === "Enter") enviarComentarioGeneral(); });
 
-    // 5. Cierres al hacer clic fuera
     window.onclick = function(e) { 
         if (e.target == document.getElementById('kpiModal')) cerrarModal(); 
         if (e.target == document.getElementById('settingsModal')) document.getElementById('settingsModal').style.display = 'none';
@@ -73,7 +75,6 @@ document.addEventListener("DOMContentLoaded", () => {
         if (menu && menu.style.display === 'block' && !menu.contains(e.target) && !e.target.classList.contains('fa-filter')) { cerrarMenuFiltro(); }
     };
 });
-
 
 // =========================================================
 // SECCIÓN 3: UTILIDADES DE INTERFAZ (UI)
@@ -100,7 +101,6 @@ function verificarPassword() {
     
     IS_ADMIN = false; ALLOWED_SECTIONS = []; USER_NAME = '';
     
-    // Hardcode del Super Admin
     if (input === '2099') {
         USER_ROLE = 'Administrador'; IS_ADMIN = true; USER_NAME = 'Súper Administrador (2099)'; ALLOWED_SECTIONS = ['A', 'S', 'N', 'V', 'G', 'I']; 
         iniciarApp(); return;
@@ -111,9 +111,9 @@ function verificarPassword() {
             let u = snapshot.val(); 
             USER_ROLE = u.rol; USER_NAME = u.nombre; IS_ADMIN = (u.rol === 'Administrador'); ALLOWED_SECTIONS = u.secciones || [];
             
-            // Registro de último acceso
+            // ACTUALIZACIÓN: Registramos la fecha en texto y un TIMESTAMP para cálculos de matemáticas perfectos
             let fechaAcceso = new Date().toLocaleString('es-MX', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit' });
-            database.ref('usuarios/' + input).update({ ultimo_acceso: fechaAcceso });
+            database.ref('usuarios/' + input).update({ ultimo_acceso: fechaAcceso, timestamp_acceso: Date.now() });
 
             iniciarApp();
         } else {
@@ -129,17 +129,20 @@ function iniciarApp() {
     document.getElementById('usuario-activo').innerText = USER_NAME;
     
     if (IS_ADMIN) {
-        document.getElementById('caja-cargar-excel').style.display = 'flex'; document.getElementById('btn-settings').style.display = 'block';
+        document.getElementById('caja-cargar-excel').style.display = 'flex'; 
+        document.getElementById('btn-settings').style.display = 'block';
+        document.getElementById('btn-activity').style.display = 'block'; // Panel de Accesos visible solo admin
         mostrarToast(`Sesión iniciada: Modo Administrador`, "fa-user-shield");
     } else {
-        document.getElementById('caja-cargar-excel').style.display = 'none'; document.getElementById('btn-settings').style.display = 'none';
+        document.getElementById('caja-cargar-excel').style.display = 'none'; 
+        document.getElementById('btn-settings').style.display = 'none';
+        document.getElementById('btn-activity').style.display = 'none';
         mostrarToast(`Sesión iniciada: ${USER_NAME}`, "fa-user-edit");
     }
 
     try { let fg = localStorage.getItem('hyundai_filtros_seccion'); if (fg) { let p = JSON.parse(fg); for (let k in p) { FILTROS_POR_SECCION[k] = new Set(p[k]); } } } catch (e) {}
     iniciarConexionNube();
 }
-
 
 // =========================================================
 // SECCIÓN 5: CONEXIÓN FIREBASE Y CARGA DE EXCEL
@@ -227,7 +230,15 @@ function cargarExcelNube(e) {
 // SECCIÓN 6: PROCESAMIENTO DE DATOS (CORE)
 // =========================================================
 function analizarDatos(datos) {
-    let secciones = { 'S': { titulo: 'Siniestros (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'N': { titulo: 'Normales', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'V': { titulo: 'Ventas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'I': { titulo: 'Internas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 }, 'G': { titulo: 'Garantías', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0 } };
+    // CORRECCIÓN 4: "S" es ahora Seminuevos. Se agregaron variables moneyOk, moneyWarn, moneyAlert.
+    let secciones = { 
+        'S': { titulo: 'Seminuevos (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
+        'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
+        'N': { titulo: 'Normales', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
+        'V': { titulo: 'Ventas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
+        'I': { titulo: 'Internas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
+        'G': { titulo: 'Garantías', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 } 
+    };
     let global = { total: 0, ok: 0, warn: 0, alert: 0, dinero: 0, dineroAlert: 0 };
     actualizarBannerFiltros(); 
 
@@ -242,21 +253,45 @@ function analizarDatos(datos) {
 
         sec.ordenes.push({ orden, nombre: String(fila['Nombre'] || "Sin Nombre"), asesor: String(fila['Asesor'] || "No Asignado").replace(/^\d+\s*ASE-\s*/i, '').substring(0, 20), dias, importe, semaforo, comentario: notas.comentario, observaciones: notas.observaciones, autor: notas.modificado_por, fecha_mod: notas.fecha });
         sec.total += importe; global.total++; global.dinero += importe;
-        if (semaforo === 'rojo') { sec.countAlert++; global.alert++; global.dineroAlert += importe; } else if (semaforo === 'amarillo') { sec.countWarn++; global.warn++; } else { sec.countOk++; global.ok++; }
+        
+        // Sumamos dinero dependiendo del semáforo (PUNTO 3)
+        if (semaforo === 'rojo') { sec.countAlert++; sec.moneyAlert += importe; global.alert++; global.dineroAlert += importe; } 
+        else if (semaforo === 'amarillo') { sec.countWarn++; sec.moneyWarn += importe; global.warn++; } 
+        else { sec.countOk++; sec.moneyOk += importe; global.ok++; }
     });
 
     DATOS_GLOBALES = secciones;
     document.getElementById('kpi-total-ops').innerText = global.total; document.getElementById('kpi-ok-ops').innerText = global.ok; document.getElementById('kpi-warn-ops').innerText = global.warn; document.getElementById('kpi-alert-ops').innerText = global.alert;
     document.getElementById('kpi-money').innerText = moneyFormat.format(global.dinero); document.getElementById('kpi-money-sub').innerHTML = `<span style="color:var(--red); font-weight:bold;">${moneyFormat.format(global.dineroAlert)}</span> crítico (≥ 30d)`;
-    generarTablaEmail(secciones); renderizarTablero(secciones);
+    generarTablaEmail(secciones, global.total, global.dinero); renderizarTablero(secciones);
 }
 
-function generarTablaEmail(secciones) {
-    let html = `<table class="mini-summary-table" id="tabla-para-copiar"><thead><tr><th style="width:25%">Departamento</th><th>< 15 Días (Verde)</th><th>15-29 Días (Ama)</th><th>≥ 30 Días (Rojo)</th><th>Monto Total</th></tr></thead><tbody>`;
-    ['A', 'S', 'N', 'V', 'G', 'I'].forEach(k => { if (secciones[k].ordenes.length > 0) { html += `<tr><td>${secciones[k].titulo}</td><td class="bg-ok-light">${secciones[k].countOk}</td><td class="${secciones[k].countWarn > 0 ? 'bg-warn-light' : ''}">${secciones[k].countWarn}</td><td class="${secciones[k].countAlert > 0 ? 'bg-alert-light' : ''}">${secciones[k].countAlert}</td><td style="text-align:right; font-weight:bold;">${moneyFormat.format(secciones[k].total)}</td></tr>`; } });
+function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero) {
+    let html = `<table class="mini-summary-table" id="tabla-para-copiar">
+        <thead><tr><th>Departamento</th><th>< 15 Días (Verde)</th><th>15-29 Días (Ama)</th><th>≥ 30 Días (Rojo)</th><th>Total General</th></tr></thead><tbody>`;
+    
+    ['A', 'S', 'N', 'V', 'G', 'I'].forEach(k => { 
+        let sec = secciones[k];
+        if (sec.ordenes.length > 0) { 
+            // CORRECCIÓN 3: Salto de línea usando <br> para poner el dinero debajo de la cantidad
+            html += `<tr>
+                <td style="text-align:left;"><strong>${sec.titulo}</strong><br><small style="color:var(--grey);">${sec.ordenes.length} órdenes</small></td>
+                <td class="bg-ok-light" style="padding:12px;">${sec.countOk}<br><small style="color:var(--dark-grey); font-weight:normal;">${moneyFormat.format(sec.moneyOk)}</small></td>
+                <td class="${sec.countWarn > 0 ? 'bg-warn-light' : ''}" style="padding:12px;">${sec.countWarn}<br><small style="color:var(--dark-grey); font-weight:normal;">${moneyFormat.format(sec.moneyWarn)}</small></td>
+                <td class="${sec.countAlert > 0 ? 'bg-alert-light' : ''}" style="padding:12px;">${sec.countAlert}<br><small style="color:var(--dark-grey); font-weight:normal;">${moneyFormat.format(sec.moneyAlert)}</small></td>
+                <td style="text-align:right;"><strong>${sec.ordenes.length} Ops</strong><br><strong style="color:var(--h-blue);">${moneyFormat.format(sec.total)}</strong></td>
+            </tr>`; 
+        } 
+    });
+    
+    // Fila del Gran Total (PUNTO 3)
+    html += `<tr style="background-color: var(--dark-grey); color: white;">
+        <td style="text-align:left;"><strong>TOTAL AGENCIA</strong></td><td colspan="3"></td>
+        <td style="text-align:right;"><strong>${granTotalOrdenes} Ops</strong><br><strong>${moneyFormat.format(granTotalDinero)}</strong></td>
+    </tr>`;
+
     document.getElementById('tabla-resumen-container').innerHTML = html + `</tbody></table>`;
 }
-
 
 // =========================================================
 // SECCIÓN 7: RENDERIZADO DE TABLEROS Y SECCIONES
@@ -384,11 +419,45 @@ function guardarUsuario() {
     database.ref('usuarios/' + pass).set({ nombre: nombre, rol: rol, secciones: secciones }).then(() => { mostrarToast("Usuario guardado"); document.getElementById('set-pass').value = ''; document.getElementById('set-nombre').value = ''; document.querySelectorAll('.chk-sec').forEach(cb => cb.checked = false); });
 }
 window.eliminarUsuario = function(pwd) { if(confirm("¿Eliminar usuario?")) { database.ref('usuarios/' + pwd).remove().then(() => mostrarToast("Usuario eliminado")); } };
+
 function renderizarTablaUsuarios() { 
-    let tbody = document.getElementById('tabla-usuarios-body'); if(!tbody) return; tbody.innerHTML = ''; 
+    let tbody = document.getElementById('tabla-usuarios-body'); 
+    let actBody = document.getElementById('activity-table-body');
+    
+    if(tbody) tbody.innerHTML = ''; 
+    if(actBody) actBody.innerHTML = ''; 
+    
+    let ahora = Date.now();
+
     for (let pwd in DB_USUARIOS) { 
-        let u = DB_USUARIOS[pwd]; let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna"; let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca";
-        tbody.innerHTML += `<tr><td><strong>${pwd}</strong></td><td>${u.nombre}</td><td>${u.rol}</td><td>${secStr}</td><td style="font-weight: bold; color: var(--grey); font-size: 0.9em;">${ultimoAcceso}</td><td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')" title="Eliminar"><i class="fas fa-trash"></i></button></td></tr>`; 
+        let u = DB_USUARIOS[pwd]; 
+        let secStr = (u.secciones && u.secciones.length > 0) ? u.secciones.join(", ") : "Ninguna";
+        let ultimoAcceso = u.ultimo_acceso ? u.ultimo_acceso : "Nunca";
+
+        // PUNTO 2: Matemáticas de Inactividad
+        let inactividadText = "<span style='color: var(--grey); font-weight: bold;'>Nunca ha entrado</span>";
+        if (u.timestamp_acceso) {
+            let dias = Math.floor((ahora - u.timestamp_acceso) / (1000 * 60 * 60 * 24));
+            if (dias === 0) {
+                inactividadText = "<span style='color: var(--green); font-weight: bold;'>Activo hoy</span>";
+            } else {
+                inactividadText = `<span style='color: var(--red); font-weight: bold;'>Inactivo hace ${dias} día(s)</span>`;
+            }
+        }
+
+        // Llenar Modal de Ajustes
+        if(tbody) {
+            tbody.innerHTML += `<tr><td><strong>${pwd}</strong></td><td>${u.nombre}</td><td>${u.rol}</td><td>${secStr}</td><td style="font-weight: bold; color: var(--grey); font-size: 0.9em;">${ultimoAcceso}</td><td style="text-align:center;"><button class="btn-delete" onclick="eliminarUsuario('${pwd}')" title="Eliminar"><i class="fas fa-trash"></i></button></td></tr>`; 
+        }
+
+        // Llenar Panel Desplegable de Inactividad
+        if(actBody) {
+            actBody.innerHTML += `<tr>
+                <td><strong>${u.nombre}</strong><br><small style="color:var(--grey);">${pwd}</small></td>
+                <td>${u.rol}</td>
+                <td>${inactividadText}</td>
+            </tr>`;
+        }
     } 
 }
 
@@ -396,7 +465,6 @@ function renderizarTablaUsuarios() {
 // =========================================================
 // SECCIÓN 13: EXPORTACIÓN Y PORTAPAPELES
 // =========================================================
-function copiarTabla() { let range = document.createRange(); range.selectNode(document.getElementById('tabla-para-copiar')); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); mostrarToast("Copiado al portapapeles"); }
 function copiarTablaDetalle() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; let range = document.createRange(); range.selectNode(tabla); window.getSelection().removeAllRanges(); window.getSelection().addRange(range); document.execCommand("copy"); window.getSelection().removeAllRanges(); }
 function exportarAExcel() { if (!RAW_EXCEL_DATA || RAW_EXCEL_DATA.length === 0) return; let dataAExportar = RAW_EXCEL_DATA.reduce((acc, fila) => { let orden = String(fila['Orden'] || "").trim().toUpperCase(); if(orden.length > 1) { let notas = leerDatosNota(orden); let estatus = notas.comentario ? notas.comentario.trim() : "(Vacío)"; if (!(FILTROS_POR_SECCION[orden.charAt(0)] || new Set()).has(estatus)) acc.push({ ...fila, 'Seguimiento': notas.comentario || '', 'Comentarios': notas.observaciones || '', 'Autor Comentario': notas.modificado_por || '', 'Fecha Mod.': notas.fecha || '' }); } return acc; }, []); let wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dataAExportar), "Seguimiento"); XLSX.writeFile(wb, "Reporte_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
 function exportarDetalleAExcel() { let tabla = document.getElementById('tabla-detalle-copiar'); if (!tabla) return; XLSX.writeFile(XLSX.utils.table_to_book(tabla, {sheet: "Detalle"}), "Detalle_" + new Date().toLocaleDateString('es-MX').replace(/\//g, '-') + ".xlsx"); }
