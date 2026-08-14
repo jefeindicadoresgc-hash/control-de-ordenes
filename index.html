@@ -103,7 +103,7 @@
 </div>
 
 <div class="container" id="main-app">
-    <!-- ========================================================= -->
+<!-- ========================================================= -->
     <!-- SECCIÓN 3: BARRA DE NAVEGACIÓN (HEADER)                   -->
     <!-- ========================================================= -->
     <header>
@@ -121,11 +121,25 @@
                 </label>
                 <div class="sync-status">Última carga: <span id="ultima-carga-fecha">Buscando...</span></div>
             </div>
+            <!-- Nuevo Botón de Accesos (Oculto por defecto) -->
+            <button class="btn btn-settings" id="btn-activity" style="display: none;"><i class="fas fa-user-clock"></i> Accesos</button>
+            
             <button class="btn btn-settings" id="btn-settings" style="display: none;"><i class="fas fa-users-cog"></i> Ajustes</button>
             <button class="btn btn-save" id="btn-sync"><i class="fas fa-cloud"></i> Sincronizado</button>
             <button class="btn btn-excel" id="btn-export"><i class="fas fa-file-excel"></i> Exportar</button>
         </div>
     </header>
+
+    <!-- Nuevo Panel Retráctil de Usuarios (Oculto) -->
+    <div id="activity-panel" style="display: none; background: var(--card-bg); border: 1px solid var(--border-color); border-radius: 8px; margin-top: 10px; padding: 20px; box-shadow: var(--shadow-md);">
+        <h3 style="margin-top: 0; color: var(--h-blue); font-size: 1.1em; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;"><i class="fas fa-history"></i> Reporte de Inactividad de Usuarios</h3>
+        <div class="table-responsive">
+            <table class="track-table" style="min-width: 600px;">
+                <thead><tr><th>Nombre de Usuario</th><th>Rol</th><th>Estado de Inactividad</th></tr></thead>
+                <tbody id="activity-table-body"></tbody>
+            </table>
+        </div>
+    </div>
 
     <!-- ESTADO VACÍO (Cuando no hay Excel) -->
     <div id="empty-state" class="empty-state" style="display: none;">
@@ -139,7 +153,7 @@
         <div><i class="fas fa-exclamation-triangle"></i> Tienes filtros activos en <span id="filtros-seccion"></span>. Ocultando <span id="filtros-count">0</span> estatus.</div>
         <button class="btn btn-outline-danger" id="btn-clear-filters"><i class="fas fa-times"></i> Quitar Filtros</button>
     </div>
-
+    
     <!-- ========================================================= -->
     <!-- SECCIÓN 4: INDICADORES CLAVE (KPIs)                       -->
     <!-- ========================================================= -->
@@ -151,14 +165,10 @@
         <div class="kpi-card money"><div class="kpi-label">Dinero Total (S/IVA)</div><div class="kpi-value txt-money" id="kpi-money">0</div><div class="kpi-sub" id="kpi-money-sub"></div></div>
     </div>
 
-    <!-- ========================================================= -->
+<!-- ========================================================= -->
     <!-- SECCIÓN 5: RESUMEN EJECUTIVO (CORREO)                     -->
     <!-- ========================================================= -->
-    <div id="email-section" class="email-section">
-        <div class="email-header">
-            <h3><i class="fas fa-envelope-open-text"></i> Resumen Ejecutivo (Para Correo)</h3>
-            <button class="btn btn-copy" id="btn-copy-summary"><i class="fas fa-copy"></i> Copiar Tabla</button>
-        </div>
+    <div id="email-section" class="email-section" style="padding-top: 10px;">
         <div id="tabla-resumen-container" class="table-responsive"></div>
     </div>
 
@@ -267,7 +277,8 @@
             <div>
                 <label class="form-label">Departamentos Permitidos (Edición)</label>
                 <div style="display:flex; gap:10px; margin-top:5px; flex-wrap:wrap; font-size: 0.9em; font-weight: bold;">
-                    <label><input type="checkbox" class="chk-sec" value="S"> Siniestros (S)</label>
+                    <!-- CORRECCIÓN 4: SEMINUEVOS -->
+                    <label><input type="checkbox" class="chk-sec" value="S"> Seminuevos (S)</label>
                     <label><input type="checkbox" class="chk-sec" value="A"> Siniestros (A)</label>
                     <label><input type="checkbox" class="chk-sec" value="N"> Normales</label>
                     <label><input type="checkbox" class="chk-sec" value="G"> Garantías</label>
@@ -278,22 +289,25 @@
             <button class="btn btn-upload" style="grid-column: span 2; padding: 12px; font-size: 1.1em;" id="btn-save-user"><i class="fas fa-save"></i> Guardar Usuario</button>
         </div>
 
-        <table class="track-table">
-            <thead>
-                <tr>
-                    <th>Código (Contraseña)</th>
-                    <th>Nombre</th>
-                    <th>Rol</th>
-                    <th>Secciones</th>
-                    <th>Último Acceso</th>
-                    <th>Acción</th>
-                </tr>
-            </thead>
-            <tbody id="tabla-usuarios-body"></tbody>
-        </table>
+        <!-- CORRECCIÓN 1: Contenedor con overflow-x para que la tabla no rompa el diseño -->
+        <div style="width: 100%; overflow-x: auto;">
+            <table class="track-table" style="min-width: 750px;">
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Nombre</th>
+                        <th>Rol</th>
+                        <th>Secciones</th>
+                        <th>Último Acceso</th>
+                        <th>Acción</th>
+                    </tr>
+                </thead>
+                <tbody id="tabla-usuarios-body"></tbody>
+            </table>
+        </div>
     </div>
 </div>
-
+    
 <div style="position: fixed; bottom: 3px; right: 8px; font-size: 10px; color: var(--grey); opacity: 0.3; pointer-events: none; z-index: 10000; font-weight: bold; letter-spacing: 1px;">EMM</div>
 
 </body>
