@@ -355,21 +355,30 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
    SECCIÓN 5: TABLEROS DE ÓRDENES Y TABLAS
    ========================================================= */
 .table-responsive { overflow-x: auto; }
-.mini-summary-table { width: 100%; border-collapse: collapse; font-size: 0.9em; }
-.mini-summary-table th, .mini-summary-table td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
-.mini-summary-table th { background-color: #f1f5f9; color: var(--dark-grey); text-align: left; }
+.mini-summary-table { width: 100%; border-collapse: collapse; font-size: 1.05em; }
+.mini-summary-table th, .mini-summary-table td { border: 1px solid var(--border-color); padding: 12px; text-align: center; }
+.mini-summary-table th { background-color: #f1f5f9; color: var(--dark-grey); font-weight: 800; font-size: 1.1em; }
 .bg-alert-light { background-color: #fef2f2; color: var(--red); font-weight: 600; }
 .bg-warn-light { background-color: #fffbeb; color: var(--yellow); font-weight: 600; }
 
 .grid-container { display: grid; grid-template-columns: 1fr; gap: 25px; margin-top: 30px; }
-.card { background: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); }
+.card { background: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); overflow: hidden; }
 .card-header { background: #f8fafc; padding: 15px 20px; cursor: pointer; display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-color); }
 .breakdown-bar { display: flex; padding: 12px 20px; background: var(--card-bg); border-bottom: 1px solid var(--border-color); font-size: 0.9em; justify-content: space-between; }
-.btn-chart { background: var(--card-bg); color: var(--dark-grey); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer; }
+.btn-chart { background: var(--card-bg); color: var(--dark-grey); border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;}
 
 .track-table { width: 100%; border-collapse: collapse; font-size: 0.85em; min-width: 950px; }
-.track-table th { text-align: left; padding: 10px 12px; background-color: #f1f5f9; border: 1px solid var(--border-color); }
-.track-table td { padding: 8px 12px; border: 1px solid var(--border-color); }
+.track-table th { 
+    text-align: left; 
+    padding: 12px; 
+    background-color: var(--h-blue); /* Color corporativo azul marino */
+    color: #ffffff; /* Letras Blancas */
+    border: 1px solid var(--h-blue); 
+    font-weight: bold;
+}
+.track-table th i { color: #ffffff; } /* Iconos en blanco */
+.track-table td { padding: 8px 12px; border: 1px solid var(--border-color); border-bottom: 1px solid #e2e8f0; }
+
 .badge-dias { padding: 2px 8px; border-radius: 4px; font-weight: 600; }
 .badge-ok { background: #dcfce7; color: #166534; } 
 .badge-warn { background: #fef9c3; color: #854d0e; } 
@@ -386,3 +395,40 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
 .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.7); }
 .modal-content { background-color: var(--card-bg); margin: 3% auto; padding: 25px; border: 1px solid var(--border-color); width: 95%; max-width: 1200px; border-radius: 8px; }
 .form-input { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 4px; }
+
+/* =========================================================
+   SECCIÓN 7: CIRCUITO DEL AUTO DE CARRERAS
+   ========================================================= */
+#race-car {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 60px; /* Tamaño del auto, puedes hacerlo más grande o chico aquí */
+    z-index: 9999;
+    pointer-events: none; /* Para que el auto no interfiera si le das clic accidentalmente */
+    
+    /* Hace el recorrido completo en 18 segundos, lineal y para siempre */
+    animation: driveAround 18s linear infinite;
+    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.4));
+}
+
+@keyframes driveAround {
+    /* Sale de la esquina superior izquierda hacia la derecha */
+    0%   { top: 0px; left: -60px; transform: rotate(0deg); }
+    24%  { top: 0px; left: calc(100vw - 30px); transform: rotate(0deg); }
+    
+    /* Gira en la esquina superior derecha hacia abajo */
+    25%  { top: 0px; left: calc(100vw - 30px); transform: rotate(90deg); }
+    49%  { top: calc(100vh - 30px); left: calc(100vw - 30px); transform: rotate(90deg); }
+    
+    /* Gira en la esquina inferior derecha hacia la izquierda */
+    50%  { top: calc(100vh - 30px); left: calc(100vw - 30px); transform: rotate(180deg); }
+    74%  { top: calc(100vh - 30px); left: -30px; transform: rotate(180deg); }
+    
+    /* Gira en la esquina inferior izquierda hacia arriba */
+    75%  { top: calc(100vh - 30px); left: -30px; transform: rotate(270deg); }
+    99%  { top: -60px; left: -30px; transform: rotate(270deg); }
+    
+    /* Reinicia el ciclo */
+    100% { top: -60px; left: -60px; transform: rotate(360deg); }
+}
