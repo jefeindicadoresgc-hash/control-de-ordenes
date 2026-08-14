@@ -390,7 +390,17 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
 /* =========================================================
    SECCIÓN 6: MODALES Y MENÚS FLOTANTES
    ========================================================= */
-.floating-filter-menu { position: absolute; background: white; border: 1px solid var(--border-color); box-shadow: var(--shadow-md); border-radius: 4px; z-index: 2000; width: 260px; }
+.floating-filter-menu { position: absolute; background: white; border: 1px solid var(--border-color); box-shadow: var(--shadow-md); border-radius: 8px; z-index: 2000; width: 280px; overflow: hidden; }
+.floating-filter-header { background: var(--h-blue); color: white; padding: 12px 15px; font-weight: bold; display: flex; justify-content: space-between; align-items: center; }
+.close-filter { cursor: pointer; font-size: 1.2em; font-weight: bold; transition: 0.2s; }
+.close-filter:hover { color: var(--red); transform: scale(1.2); }
+.floating-filter-list { max-height: 280px; overflow-y: auto; padding: 15px; background: var(--bg); }
+.floating-filter-footer { padding: 10px 15px; background: white; border-top: 1px solid var(--border-color); }
+
+/* ¡CORRECCIÓN APLICADA AQUÍ!: display: block para que salgan en lista */
+.filter-item { display: block; margin-bottom: 10px; font-size: 0.95em; cursor: pointer; color: var(--dark-grey); }
+.filter-item input { margin-right: 8px; transform: scale(1.2); cursor: pointer; }
+
 .toast { position: fixed; bottom: 20px; right: 20px; background-color: var(--dark-grey); color: #fff; padding: 12px 20px; border-radius: 4px; z-index: 9999; }
 .modal { display: none; position: fixed; z-index: 3000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(15, 23, 42, 0.7); }
 .modal-content { background-color: var(--card-bg); margin: 3% auto; padding: 25px; border: 1px solid var(--border-color); width: 95%; max-width: 1200px; border-radius: 8px; }
@@ -401,34 +411,29 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
    ========================================================= */
 #race-car {
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 60px; /* Tamaño del auto, puedes hacerlo más grande o chico aquí */
+    width: 120px; /* Tamaño del auto al doble */
     z-index: 9999;
-    pointer-events: none; /* Para que el auto no interfiera si le das clic accidentalmente */
+    pointer-events: none; /* No estorba si pasas el mouse por encima */
+    filter: drop-shadow(0px 8px 10px rgba(0,0,0,0.5)); /* Sombra realista */
     
-    /* Hace el recorrido completo en 18 segundos, lineal y para siempre */
-    animation: driveAround 18s linear infinite;
-    filter: drop-shadow(2px 4px 6px rgba(0,0,0,0.4));
+    /* Recorrido completo en 35 segundos, infinito y fluido */
+    animation: driveAround 35s linear infinite;
 }
 
 @keyframes driveAround {
-    /* Sale de la esquina superior izquierda hacia la derecha */
-    0%   { top: 0px; left: -60px; transform: rotate(0deg); }
-    24%  { top: 0px; left: calc(100vw - 30px); transform: rotate(0deg); }
+    /* ETAPA 1: Conduce por ARRIBA (Izquierda a Derecha) */
+    0%   { top: 10px; left: -150px; transform: rotate(0deg); opacity: 1; }
+    40%  { top: 10px; left: 100vw; transform: rotate(0deg); opacity: 1; }
+    41%  { opacity: 0; } /* Desaparece al salir de la pantalla */
     
-    /* Gira en la esquina superior derecha hacia abajo */
-    25%  { top: 0px; left: calc(100vw - 30px); transform: rotate(90deg); }
-    49%  { top: calc(100vh - 30px); left: calc(100vw - 30px); transform: rotate(90deg); }
-    
-    /* Gira en la esquina inferior derecha hacia la izquierda */
-    50%  { top: calc(100vh - 30px); left: calc(100vw - 30px); transform: rotate(180deg); }
-    74%  { top: calc(100vh - 30px); left: -30px; transform: rotate(180deg); }
-    
-    /* Gira en la esquina inferior izquierda hacia arriba */
-    75%  { top: calc(100vh - 30px); left: -30px; transform: rotate(270deg); }
-    99%  { top: -60px; left: -30px; transform: rotate(270deg); }
-    
-    /* Reinicia el ciclo */
-    100% { top: -60px; left: -60px; transform: rotate(360deg); }
+    /* ETAPA 2: Teletransportación secreta hacia abajo a la derecha (invisible) */
+    49%  { top: calc(100vh - 70px); left: 100vw; transform: rotate(180deg); opacity: 0; }
+    50%  { top: calc(100vh - 70px); left: 100vw; transform: rotate(180deg); opacity: 1; } /* Reaparece */
+
+    /* ETAPA 3: Conduce por ABAJO (Derecha a Izquierda) */
+    90%  { top: calc(100vh - 70px); left: -150px; transform: rotate(180deg); opacity: 1; }
+    91%  { opacity: 0; } /* Vuelve a desaparecer al salir por la izquierda */
+
+    /* ETAPA 4: Regresa a la línea de salida (invisible) */
+    100% { top: 10px; left: -150px; transform: rotate(0deg); opacity: 0; }
 }
