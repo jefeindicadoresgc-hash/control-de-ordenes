@@ -230,7 +230,6 @@ function cargarExcelNube(e) {
 // SECCIÓN 6: PROCESAMIENTO DE DATOS (CORE)
 // =========================================================
 function analizarDatos(datos) {
-    // CORRECCIÓN 4: "S" es ahora Seminuevos. Se agregaron variables moneyOk, moneyWarn, moneyAlert.
     let secciones = { 
         'S': { titulo: 'Seminuevos (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
         'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
@@ -254,7 +253,6 @@ function analizarDatos(datos) {
         sec.ordenes.push({ orden, nombre: String(fila['Nombre'] || "Sin Nombre"), asesor: String(fila['Asesor'] || "No Asignado").replace(/^\d+\s*ASE-\s*/i, '').substring(0, 20), dias, importe, semaforo, comentario: notas.comentario, observaciones: notas.observaciones, autor: notas.modificado_por, fecha_mod: notas.fecha });
         sec.total += importe; global.total++; global.dinero += importe;
         
-        // Sumamos dinero dependiendo del semáforo (PUNTO 3)
         if (semaforo === 'rojo') { sec.countAlert++; sec.moneyAlert += importe; global.alert++; global.dineroAlert += importe; } 
         else if (semaforo === 'amarillo') { sec.countWarn++; sec.moneyWarn += importe; global.warn++; } 
         else { sec.countOk++; sec.moneyOk += importe; global.ok++; }
@@ -268,26 +266,24 @@ function analizarDatos(datos) {
 
 function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero) {
     let html = `<table class="mini-summary-table" id="tabla-para-copiar">
-        <thead><tr><th>Departamento</th><th>< 15 Días (Verde)</th><th>15-29 Días (Ama)</th><th>≥ 30 Días (Rojo)</th><th>Total General</th></tr></thead><tbody>`;
+        <thead><tr><th>Departamento</th><th>< 15 Días</th><th>15-29 Días</th><th>≥ 30 Días</th><th>Total General</th></tr></thead><tbody>`;
     
     ['A', 'S', 'N', 'V', 'G', 'I'].forEach(k => { 
         let sec = secciones[k];
         if (sec.ordenes.length > 0) { 
-            // CORRECCIÓN 3: Salto de línea usando <br> para poner el dinero debajo de la cantidad
             html += `<tr>
-                <td style="text-align:left;"><strong>${sec.titulo}</strong><br><small style="color:var(--grey);">${sec.ordenes.length} órdenes</small></td>
-                <td class="bg-ok-light" style="padding:12px;">${sec.countOk}<br><small style="color:var(--dark-grey); font-weight:normal;">${moneyFormat.format(sec.moneyOk)}</small></td>
-                <td class="${sec.countWarn > 0 ? 'bg-warn-light' : ''}" style="padding:12px;">${sec.countWarn}<br><small style="color:var(--dark-grey); font-weight:normal;">${moneyFormat.format(sec.moneyWarn)}</small></td>
-                <td class="${sec.countAlert > 0 ? 'bg-alert-light' : ''}" style="padding:12px;">${sec.countAlert}<br><small style="color:var(--dark-grey); font-weight:normal;">${moneyFormat.format(sec.moneyAlert)}</small></td>
-                <td style="text-align:right;"><strong>${sec.ordenes.length} Ops</strong><br><strong style="color:var(--h-blue);">${moneyFormat.format(sec.total)}</strong></td>
+                <td style="text-align:left;"><strong>${sec.titulo}</strong></td>
+                <td class="bg-ok-light" style="padding:15px; font-size:1.15em; text-align:center;">${sec.countOk}<br><small style="color:var(--dark-grey); font-weight:normal; font-size:0.85em;">${moneyFormat.format(sec.moneyOk)}</small></td>
+                <td class="${sec.countWarn > 0 ? 'bg-warn-light' : ''}" style="padding:15px; font-size:1.15em; text-align:center;">${sec.countWarn}<br><small style="color:var(--dark-grey); font-weight:normal; font-size:0.85em;">${moneyFormat.format(sec.moneyWarn)}</small></td>
+                <td class="${sec.countAlert > 0 ? 'bg-alert-light' : ''}" style="padding:15px; font-size:1.15em; text-align:center;">${sec.countAlert}<br><small style="color:var(--dark-grey); font-weight:normal; font-size:0.85em;">${moneyFormat.format(sec.moneyAlert)}</small></td>
+                <td style="text-align:center; font-size:1.15em;"><strong>${sec.ordenes.length}</strong><br><strong style="color:var(--h-blue); font-size:0.85em;">${moneyFormat.format(sec.total)}</strong></td>
             </tr>`; 
         } 
     });
     
-    // Fila del Gran Total (PUNTO 3)
     html += `<tr style="background-color: var(--dark-grey); color: white;">
-        <td style="text-align:left;"><strong>TOTAL AGENCIA</strong></td><td colspan="3"></td>
-        <td style="text-align:right;"><strong>${granTotalOrdenes} Ops</strong><br><strong>${moneyFormat.format(granTotalDinero)}</strong></td>
+        <td style="text-align:left; font-size:1.15em;"><strong>TOTAL AGENCIA</strong></td><td colspan="3"></td>
+        <td style="text-align:center; font-size:1.15em;"><strong>${granTotalOrdenes}</strong><br><strong>${moneyFormat.format(granTotalDinero)}</strong></td>
     </tr>`;
 
     document.getElementById('tabla-resumen-container').innerHTML = html + `</tbody></table>`;
