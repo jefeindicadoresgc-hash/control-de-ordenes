@@ -171,6 +171,12 @@ function iniciarConexionNube() {
     // Escucha Notas
     database.ref('notas').on('value', (snapshot) => {
         DB_NOTAS_COMPARTIDAS = snapshot.val() || {}; actualizarListasDesplegables();
+        
+        // ¡ACTUALIZACIÓN MAGISTRAL!: Forzamos a recalcular las matemáticas en vivo, 
+        // pero evitamos parpadeos si el usuario está escribiendo.
+        let isFocused = document.activeElement && document.activeElement.tagName === "INPUT";
+        if (RAW_EXCEL_DATA) { analizarDatos(RAW_EXCEL_DATA, isFocused); }
+
         if (DATOS_GLOBALES) {
             for (let orden in DB_NOTAS_COMPARTIDAS) {
                 let n = DB_NOTAS_COMPARTIDAS[orden];
@@ -191,17 +197,8 @@ function iniciarConexionNube() {
         lista.innerHTML = ''; let datos = snapshot.val();
         if(datos) {
             Object.entries(datos).forEach(([key, c]) => {
-                // Si es administrador, le mostramos el botón de basura
                 let btnBorrar = IS_ADMIN ? `<button class="btn-delete-comment" onclick="eliminarComentarioGeneral('${key}')" title="Borrar Aviso"><i class="fas fa-trash"></i></button>` : '';
-                
-                lista.innerHTML += `
-                <div class="comment-item">
-                    <div class="comment-meta">
-                        <div><span class="comment-author"><i class="fas fa-user-circle"></i> ${c.autor}</span><span style="margin-left:10px;"><i class="far fa-clock"></i> ${c.fecha}</span></div>
-                        ${btnBorrar}
-                    </div>
-                    <div class="comment-text">${c.texto}</div>
-                </div>`;
+                lista.innerHTML += `<div class="comment-item"><div class="comment-meta"><div><span class="comment-author"><i class="fas fa-user-circle"></i> ${c.autor}</span><span style="margin-left:10px;"><i class="far fa-clock"></i> ${c.fecha}</span></div>${btnBorrar}</div><div class="comment-text">${c.texto}</div></div>`;
             });
             lista.scrollTop = lista.scrollHeight;
         } else {
@@ -225,11 +222,10 @@ function cargarExcelNube(e) {
     }; reader.readAsArrayBuffer(archivo);
 }
 
-
 // =========================================================
 // SECCIÓN 6: PROCESAMIENTO DE DATOS (CORE)
 // =========================================================
-function analizarDatos(datos) {
+function analizarDatos(datos, preventRender = false) {
     let secciones = { 
         'S': { titulo: 'Seminuevos (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
         'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
@@ -238,7 +234,9 @@ function analizarDatos(datos) {
         'I': { titulo: 'Internas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
         'G': { titulo: 'Garantías', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 } 
     };
-    let global = { total: 0, ok: 0, warn: 0, alert: 0, bo: 0, dinero: 0, dineroAlert: 0, dineroBO: 0 };
+    
+    // Agregamos las bolsas de dinero para la fila negra del fondo
+    let global = { total: 0, ok: 0, warn: 0, alert: 0, bo: 0, dinero: 0, dineroOk: 0, dineroWarn: 0, dineroAlert: 0, dineroBO: 0 };
     actualizarBannerFiltros(); 
 
     datos.forEach(fila => {
@@ -250,19 +248,17 @@ function analizarDatos(datos) {
         let dias = parseFloat(fila['Dias']) || 0; 
         let importe = parseFloat(String(fila['Importe  S/iva '] || "0").replace(/[^0-9.-]+/g,"")) || 0;
         
-        // LÓGICA BO: Si escribieron exactamente BO (en mayúscula o minúscula)
         let esBO = (estatusFiltro.toUpperCase() === "BO");
         let semaforo = esBO ? 'bo' : (dias >= 30 ? 'rojo' : (dias >= 15 ? 'amarillo' : 'verde'));
 
         sec.ordenes.push({ orden, nombre: String(fila['Nombre'] || "Sin Nombre"), asesor: String(fila['Asesor'] || "No Asignado").replace(/^\d+\s*ASE-\s*/i, '').substring(0, 20), dias, importe, semaforo, comentario: notas.comentario, observaciones: notas.observaciones, autor: notas.modificado_por, fecha_mod: notas.fecha });
         
-        // Siempre se suma al gran total general
         sec.total += importe; global.total++; global.dinero += importe;
         
         if (semaforo === 'bo') { sec.countBO++; sec.moneyBO += importe; global.bo++; global.dineroBO += importe; }
         else if (semaforo === 'rojo') { sec.countAlert++; sec.moneyAlert += importe; global.alert++; global.dineroAlert += importe; } 
-        else if (semaforo === 'amarillo') { sec.countWarn++; sec.moneyWarn += importe; global.warn++; } 
-        else { sec.countOk++; sec.moneyOk += importe; global.ok++; }
+        else if (semaforo === 'amarillo') { sec.countWarn++; sec.moneyWarn += importe; global.warn++; global.dineroWarn += importe; } 
+        else { sec.countOk++; sec.moneyOk += importe; global.ok++; global.dineroOk += importe; }
     });
 
     DATOS_GLOBALES = secciones;
@@ -274,10 +270,12 @@ function analizarDatos(datos) {
     document.getElementById('kpi-money').innerText = moneyFormat.format(global.dinero); 
     document.getElementById('kpi-money-sub').innerHTML = `<span style="color:var(--red); font-weight:bold;">${moneyFormat.format(global.dineroAlert)}</span> crítico | <span style="color:#8b5cf6; font-weight:bold;">${moneyFormat.format(global.dineroBO)}</span> en BO`;
     
-    generarTablaEmail(secciones, global.total, global.dinero, global.bo, global.dineroBO); renderizarTablero(secciones);
+    generarTablaEmail(secciones, global); 
+    
+    if (!preventRender) { renderizarTablero(secciones); }
 }
 
-function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero, granTotalBO, granTotalDineroBO) {
+function generarTablaEmail(secciones, global) {
     let html = `<table class="mini-summary-table" id="tabla-para-copiar">
         <thead><tr><th>Departamento</th><th>< 15 Días</th><th>15-29 Días</th><th>≥ 30 Días</th><th>Back Order (BO)</th><th>Total General</th></tr></thead><tbody>`;
     
@@ -295,15 +293,18 @@ function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero, granTot
         } 
     });
     
+    // AHORA SÍ: Imprimimos la fila negra final con las sumas perfectas
     html += `<tr style="background-color: var(--dark-grey); color: white;">
-        <td style="text-align:left; font-size:1.15em;"><strong>TOTAL AGENCIA</strong></td><td colspan="3"></td>
-        <td style="text-align:center; font-size:1.15em;"><strong>${granTotalBO}</strong><br><strong>${moneyFormat.format(granTotalDineroBO)}</strong></td>
-        <td style="text-align:center; font-size:1.15em;"><strong>${granTotalOrdenes}</strong><br><strong>${moneyFormat.format(granTotalDinero)}</strong></td>
+        <td style="text-align:left; font-size:1.15em;"><strong>TOTAL AGENCIA</strong></td>
+        <td style="text-align:center; font-size:1.15em;"><strong>${global.ok}</strong><br><strong>${moneyFormat.format(global.dineroOk)}</strong></td>
+        <td style="text-align:center; font-size:1.15em;"><strong>${global.warn}</strong><br><strong>${moneyFormat.format(global.dineroWarn)}</strong></td>
+        <td style="text-align:center; font-size:1.15em;"><strong>${global.alert}</strong><br><strong>${moneyFormat.format(global.dineroAlert)}</strong></td>
+        <td style="text-align:center; font-size:1.15em;"><strong>${global.bo}</strong><br><strong>${moneyFormat.format(global.dineroBO)}</strong></td>
+        <td style="text-align:center; font-size:1.15em;"><strong>${global.total}</strong><br><strong>${moneyFormat.format(global.dinero)}</strong></td>
     </tr>`;
 
     document.getElementById('tabla-resumen-container').innerHTML = html + `</tbody></table>`;
 }
-
 // =========================================================
 // SECCIÓN 7: RENDERIZADO DE TABLEROS Y SECCIONES
 // =========================================================
