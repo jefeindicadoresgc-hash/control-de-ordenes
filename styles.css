@@ -324,8 +324,14 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
 .kpi-card.ok { border-top-color: var(--green); } 
 .kpi-card.warn { border-top-color: var(--yellow); } 
 .kpi-card.alert { border-top-color: var(--red); } 
+.kpi-card.bo { border-top-color: #8b5cf6; } /* Color morado para BO */
 .kpi-card.money { border-top-color: var(--h-blue); }
+
 .kpi-value { font-size: 2em; font-weight: 800; margin-top: 8px; color: var(--dark-grey); }
+.txt-ok { color: var(--green); }
+.txt-warn { color: var(--yellow); }
+.txt-alert { color: var(--red); }
+.txt-bo { color: #8b5cf6; } /* Texto BO morado */
 .kpi-label { font-size: 0.8em; color: var(--grey); text-transform: uppercase; font-weight: 700; letter-spacing: 0.5px; }
 
 .filter-banner { background: #fef3c7; color: #92400e; padding: 15px 20px; border-radius: 4px; border: 1px solid #fde68a; margin-top: 20px; font-weight: 600; display: flex; justify-content: space-between; display: none; }
@@ -345,11 +351,8 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
 .comments-input-area { display: flex; gap: 15px; }
 .comments-input-area input { flex: 1; padding: 12px 20px; border: 2px solid var(--border-color); border-radius: 8px; font-size: 1em; outline: none; transition: border-color 0.3s; background: var(--bg); }
 .comments-input-area input:focus { border-color: #ec4899; background: white; }
-
-/* Botón de borrar comentario (Solo Admin) */
 .btn-delete-comment { background: transparent; border: none; color: var(--red); cursor: pointer; opacity: 0.5; transition: 0.2s; font-size: 1.1em;}
 .btn-delete-comment:hover { opacity: 1; transform: scale(1.1); }
-
 
 /* =========================================================
    SECCIÓN 5: TABLEROS DE ÓRDENES Y TABLAS
@@ -360,6 +363,7 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
 .mini-summary-table th { background-color: #f1f5f9; color: var(--dark-grey); font-weight: 800; font-size: 1.1em; }
 .bg-alert-light { background-color: #fef2f2; color: var(--red); font-weight: 600; }
 .bg-warn-light { background-color: #fffbeb; color: var(--yellow); font-weight: 600; }
+.bg-bo-light { background-color: #f3e8ff; color: #7c3aed; font-weight: 600; } /* Fondo BO en tabla resumen */
 
 .grid-container { display: grid; grid-template-columns: 1fr; gap: 25px; margin-top: 30px; }
 .card { background: var(--card-bg); border-radius: 8px; box-shadow: var(--shadow-sm); border: 1px solid var(--border-color); overflow: hidden; }
@@ -371,21 +375,22 @@ header { background: var(--card-bg); padding: 20px 30px; border-radius: 8px; bor
 .track-table th { 
     text-align: left; 
     padding: 12px; 
-    background-color: var(--h-blue); /* Color corporativo azul marino */
-    color: #ffffff; /* Letras Blancas */
+    background-color: var(--h-blue); 
+    color: #ffffff; 
     border: 1px solid var(--h-blue); 
     font-weight: bold;
 }
-.track-table th i { color: #ffffff; } /* Iconos en blanco */
+.track-table th i { color: #ffffff; } 
 .track-table td { padding: 8px 12px; border: 1px solid var(--border-color); border-bottom: 1px solid #e2e8f0; }
 
 .badge-dias { padding: 2px 8px; border-radius: 4px; font-weight: 600; }
 .badge-ok { background: #dcfce7; color: #166534; } 
 .badge-warn { background: #fef9c3; color: #854d0e; } 
 .badge-alert { background: #fee2e2; color: #991b1b; }
+.badge-bo { background: #e9d5ff; color: #6d28d9; } /* Color pastilla BO */
+
 .comment-box { width: 100%; border: 1px solid transparent; padding: 6px; border-radius: 4px; background: transparent; }
 .comment-box:focus { border-color: var(--h-blue); background: white; outline: none; }
-
 
 /* =========================================================
    SECCIÓN 6: MODALES Y MENÚS FLOTANTES
