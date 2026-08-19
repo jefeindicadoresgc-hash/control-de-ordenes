@@ -231,14 +231,14 @@ function cargarExcelNube(e) {
 // =========================================================
 function analizarDatos(datos) {
     let secciones = { 
-        'S': { titulo: 'Seminuevos (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
-        'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
-        'N': { titulo: 'Normales', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
-        'V': { titulo: 'Ventas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
-        'I': { titulo: 'Internas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 }, 
-        'G': { titulo: 'Garantías', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0 } 
+        'S': { titulo: 'Seminuevos (S)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
+        'A': { titulo: 'Siniestros (A)', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
+        'N': { titulo: 'Normales', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
+        'V': { titulo: 'Ventas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
+        'I': { titulo: 'Internas', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 }, 
+        'G': { titulo: 'Garantías', ordenes: [], total: 0, countOk: 0, countWarn: 0, countAlert: 0, countBO: 0, moneyOk: 0, moneyWarn: 0, moneyAlert: 0, moneyBO: 0 } 
     };
-    let global = { total: 0, ok: 0, warn: 0, alert: 0, dinero: 0, dineroAlert: 0 };
+    let global = { total: 0, ok: 0, warn: 0, alert: 0, bo: 0, dinero: 0, dineroAlert: 0, dineroBO: 0 };
     actualizarBannerFiltros(); 
 
     datos.forEach(fila => {
@@ -247,26 +247,39 @@ function analizarDatos(datos) {
         let notas = leerDatosNota(orden); let estatusFiltro = notas.comentario ? notas.comentario.trim() : ""; if (estatusFiltro === "") estatusFiltro = "(Vacío)";
         if ((FILTROS_POR_SECCION[letra] || new Set()).has(estatusFiltro)) return; 
 
-        let dias = parseFloat(fila['Dias']) || 0; let importe = parseFloat(String(fila['Importe  S/iva '] || "0").replace(/[^0-9.-]+/g,"")) || 0;
-        let semaforo = dias >= 30 ? 'rojo' : (dias >= 15 ? 'amarillo' : 'verde');
+        let dias = parseFloat(fila['Dias']) || 0; 
+        let importe = parseFloat(String(fila['Importe  S/iva '] || "0").replace(/[^0-9.-]+/g,"")) || 0;
+        
+        // LÓGICA BO: Si escribieron exactamente BO (en mayúscula o minúscula)
+        let esBO = (estatusFiltro.toUpperCase() === "BO");
+        let semaforo = esBO ? 'bo' : (dias >= 30 ? 'rojo' : (dias >= 15 ? 'amarillo' : 'verde'));
 
         sec.ordenes.push({ orden, nombre: String(fila['Nombre'] || "Sin Nombre"), asesor: String(fila['Asesor'] || "No Asignado").replace(/^\d+\s*ASE-\s*/i, '').substring(0, 20), dias, importe, semaforo, comentario: notas.comentario, observaciones: notas.observaciones, autor: notas.modificado_por, fecha_mod: notas.fecha });
+        
+        // Siempre se suma al gran total general
         sec.total += importe; global.total++; global.dinero += importe;
         
-        if (semaforo === 'rojo') { sec.countAlert++; sec.moneyAlert += importe; global.alert++; global.dineroAlert += importe; } 
+        if (semaforo === 'bo') { sec.countBO++; sec.moneyBO += importe; global.bo++; global.dineroBO += importe; }
+        else if (semaforo === 'rojo') { sec.countAlert++; sec.moneyAlert += importe; global.alert++; global.dineroAlert += importe; } 
         else if (semaforo === 'amarillo') { sec.countWarn++; sec.moneyWarn += importe; global.warn++; } 
         else { sec.countOk++; sec.moneyOk += importe; global.ok++; }
     });
 
     DATOS_GLOBALES = secciones;
-    document.getElementById('kpi-total-ops').innerText = global.total; document.getElementById('kpi-ok-ops').innerText = global.ok; document.getElementById('kpi-warn-ops').innerText = global.warn; document.getElementById('kpi-alert-ops').innerText = global.alert;
-    document.getElementById('kpi-money').innerText = moneyFormat.format(global.dinero); document.getElementById('kpi-money-sub').innerHTML = `<span style="color:var(--red); font-weight:bold;">${moneyFormat.format(global.dineroAlert)}</span> crítico (≥ 30d)`;
-    generarTablaEmail(secciones, global.total, global.dinero); renderizarTablero(secciones);
+    document.getElementById('kpi-total-ops').innerText = global.total; 
+    document.getElementById('kpi-ok-ops').innerText = global.ok; 
+    document.getElementById('kpi-warn-ops').innerText = global.warn; 
+    document.getElementById('kpi-alert-ops').innerText = global.alert;
+    document.getElementById('kpi-bo-ops').innerText = global.bo; 
+    document.getElementById('kpi-money').innerText = moneyFormat.format(global.dinero); 
+    document.getElementById('kpi-money-sub').innerHTML = `<span style="color:var(--red); font-weight:bold;">${moneyFormat.format(global.dineroAlert)}</span> crítico | <span style="color:#8b5cf6; font-weight:bold;">${moneyFormat.format(global.dineroBO)}</span> en BO`;
+    
+    generarTablaEmail(secciones, global.total, global.dinero, global.bo, global.dineroBO); renderizarTablero(secciones);
 }
 
-function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero) {
+function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero, granTotalBO, granTotalDineroBO) {
     let html = `<table class="mini-summary-table" id="tabla-para-copiar">
-        <thead><tr><th>Departamento</th><th>< 15 Días</th><th>15-29 Días</th><th>≥ 30 Días</th><th>Total General</th></tr></thead><tbody>`;
+        <thead><tr><th>Departamento</th><th>< 15 Días</th><th>15-29 Días</th><th>≥ 30 Días</th><th>Back Order (BO)</th><th>Total General</th></tr></thead><tbody>`;
     
     ['A', 'S', 'N', 'V', 'G', 'I'].forEach(k => { 
         let sec = secciones[k];
@@ -276,6 +289,7 @@ function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero) {
                 <td class="bg-ok-light" style="padding:15px; font-size:1.15em; text-align:center;">${sec.countOk}<br><small style="color:var(--dark-grey); font-weight:normal; font-size:0.85em;">${moneyFormat.format(sec.moneyOk)}</small></td>
                 <td class="${sec.countWarn > 0 ? 'bg-warn-light' : ''}" style="padding:15px; font-size:1.15em; text-align:center;">${sec.countWarn}<br><small style="color:var(--dark-grey); font-weight:normal; font-size:0.85em;">${moneyFormat.format(sec.moneyWarn)}</small></td>
                 <td class="${sec.countAlert > 0 ? 'bg-alert-light' : ''}" style="padding:15px; font-size:1.15em; text-align:center;">${sec.countAlert}<br><small style="color:var(--dark-grey); font-weight:normal; font-size:0.85em;">${moneyFormat.format(sec.moneyAlert)}</small></td>
+                <td class="${sec.countBO > 0 ? 'bg-bo-light' : ''}" style="padding:15px; font-size:1.15em; text-align:center;">${sec.countBO}<br><small style="color:var(--dark-grey); font-weight:normal; font-size:0.85em;">${moneyFormat.format(sec.moneyBO)}</small></td>
                 <td style="text-align:center; font-size:1.15em;"><strong>${sec.ordenes.length}</strong><br><strong style="color:var(--h-blue); font-size:0.85em;">${moneyFormat.format(sec.total)}</strong></td>
             </tr>`; 
         } 
@@ -283,6 +297,7 @@ function generarTablaEmail(secciones, granTotalOrdenes, granTotalDinero) {
     
     html += `<tr style="background-color: var(--dark-grey); color: white;">
         <td style="text-align:left; font-size:1.15em;"><strong>TOTAL AGENCIA</strong></td><td colspan="3"></td>
+        <td style="text-align:center; font-size:1.15em;"><strong>${granTotalBO}</strong><br><strong>${moneyFormat.format(granTotalDineroBO)}</strong></td>
         <td style="text-align:center; font-size:1.15em;"><strong>${granTotalOrdenes}</strong><br><strong>${moneyFormat.format(granTotalDinero)}</strong></td>
     </tr>`;
 
@@ -299,7 +314,7 @@ function renderizarTablero(secciones) {
     let container = document.getElementById('dashboard'); container.innerHTML = "";
     ['A', 'S', 'N', 'V', 'G', 'I'].forEach(key => {
         let sec = secciones[key]; if (sec.ordenes.length === 0) return; let cardId = `card-${key}`;
-        container.innerHTML += `<div class="card" id="${cardId}"><div class="card-header" onclick="toggleCard('${cardId}', event)"><div class="card-title">${sec.titulo} <small>(${sec.ordenes.length})</small></div><div style="font-weight:bold; color:var(--dark-grey);">${moneyFormat.format(sec.total)} <i class="fas fa-chevron-down chevron"></i></div></div><div class="card-content"><div class="breakdown-bar"><div class="bd-stats"><span class="bd-ok">Verde: ${sec.countOk}</span> <span class="bd-warn">Amarillo: ${sec.countWarn}</span> <span class="bd-alert">Rojo: ${sec.countAlert}</span></div><button class="btn-chart" onclick="abrirGraficas('${key}', '${sec.titulo}')"><i class="fas fa-list"></i> Ver Desglose</button></div><div class="table-responsive" id="table-container-${key}"></div></div></div>`;
+        container.innerHTML += `<div class="card" id="${cardId}"><div class="card-header" onclick="toggleCard('${cardId}', event)"><div class="card-title">${sec.titulo} <small>(${sec.ordenes.length})</small></div><div style="font-weight:bold; color:var(--dark-grey);">${moneyFormat.format(sec.total)} <i class="fas fa-chevron-down chevron"></i></div></div><div class="card-content"><div class="breakdown-bar"><div class="bd-stats"><span class="bd-ok">Verde: ${sec.countOk}</span> <span class="bd-warn">Amarillo: ${sec.countWarn}</span> <span class="bd-alert">Rojo: ${sec.countAlert}</span> <span style="color:#8b5cf6; font-weight:bold; margin-left:10px;">BO: ${sec.countBO}</span></div><button class="btn-chart" onclick="abrirGraficas('${key}', '${sec.titulo}')"><i class="fas fa-list"></i> Ver Desglose</button></div><div class="table-responsive" id="table-container-${key}"></div></div></div>`;
     });
     ['A', 'S', 'N', 'V', 'G', 'I'].forEach(key => { if (secciones[key] && secciones[key].ordenes.length > 0) renderizarTablaSeccion(key); });
 }
@@ -312,16 +327,16 @@ function renderizarTablaSeccion(key) {
     let inSeg = IS_ADMIN ? '' : 'readonly disabled style="background:var(--bg); cursor:not-allowed;" title="Solo Administrador"';
     let inObs = (IS_ADMIN || ALLOWED_SECTIONS.includes(key)) ? '' : 'readonly disabled style="background:var(--bg); cursor:not-allowed;" title="Sin permisos"';
 
-    // ¡CORRECCIÓN APLICADA AQUÍ!: Se quitó el background-color:var(--bg) de la columna Seguimiento
     let html = `<table class="track-table"><thead><tr><th>Orden</th><th>Cliente</th><th class="th-sortable ${sortMode === 'asesor' ? 'active' : ''}" onclick="cambiarOrden('${key}', 'asesor')">Asesor <i class="fas fa-sort-alpha-down"></i></th><th class="th-sortable ${sortMode === 'dias' ? 'active' : ''}" style="text-align:center;" onclick="cambiarOrden('${key}', 'dias')">Días <i class="fas fa-sort-numeric-down"></i></th><th style="text-align:right;">Importe</th><th style="width: 15%;">Seguimiento <i class="fas fa-filter icon-filter" onclick="abrirMenuFiltroColumna(event, '${key}')" style="float:right; cursor:pointer; ${styleFiltro}"></i></th><th style="width: 20%;">Comentarios</th><th style="width: 15%;">Autor Comentario</th><th>Fecha Mod.</th></tr></thead><tbody>`;
 
     sec.ordenes.forEach((item) => {
-        let badgeClass = item.semaforo === 'verde' ? 'badge-ok' : (item.semaforo === 'amarillo' ? 'badge-warn' : 'badge-alert');
-        html += `<tr id="row-${item.orden}" style="background-color:${getPastelColor(item.comentario)}"><td class="cell-orden">${item.orden}</td><td><span style="font-weight:normal; color:var(--grey); font-size:0.9em;">${item.nombre}</span></td><td><span class="asesor-name">${item.asesor}</span></td><td class="cell-dias" style="text-align:center;"><span class="badge-dias ${badgeClass}">${item.dias}</span></td><td class="cell-money" style="text-align:right;">${moneyFormat.format(item.importe)}</td><td><input type="text" id="comentario-${item.orden}" class="comment-box" list="list-comentarios" placeholder="..." value="${item.comentario || ''}" onchange="guardarDatosNota('${item.orden}', 'comentario', this.value)" ${inSeg}></td><td><input type="text" id="obs-${item.orden}" class="comment-box" list="list-observaciones" placeholder="Añadir comentario..." value="${item.observaciones || ''}" onchange="guardarDatosNota('${item.orden}', 'observaciones', this.value)" ${inObs}></td><td id="autor-${item.orden}"><small style="font-weight: bold; color: var(--h-blue);">${item.autor || '-'}</small></td><td class="date-cell" id="date-${item.orden}">${item.fecha_mod || ''}</td></tr>`;
+        // Se define el color morado de BO para la pastilla
+        let badgeClass = item.semaforo === 'bo' ? 'badge-bo' : (item.semaforo === 'verde' ? 'badge-ok' : (item.semaforo === 'amarillo' ? 'badge-warn' : 'badge-alert'));
+        
+        html += `<tr id="row-${item.orden}" style="background-color:${getPastelColor(item.comentario)}"><td class="cell-orden">${item.orden}</td><td><span style="font-weight:normal; color:var(--grey); font-size:0.9em;">${item.nombre}</span></td><td><span class="asesor-name">${item.asesor}</span></td><td class="cell-dias" style="text-align:center;"><span class="badge-dias ${badgeClass}">${item.semaforo === 'bo' ? 'BO' : item.dias}</span></td><td class="cell-money" style="text-align:right;">${moneyFormat.format(item.importe)}</td><td><input type="text" id="comentario-${item.orden}" class="comment-box" list="list-comentarios" placeholder="..." value="${item.comentario || ''}" onchange="guardarDatosNota('${item.orden}', 'comentario', this.value)" ${inSeg}></td><td><input type="text" id="obs-${item.orden}" class="comment-box" list="list-observaciones" placeholder="Añadir comentario..." value="${item.observaciones || ''}" onchange="guardarDatosNota('${item.orden}', 'observaciones', this.value)" ${inObs}></td><td id="autor-${item.orden}"><small style="font-weight: bold; color: var(--h-blue);">${item.autor || '-'}</small></td><td class="date-cell" id="date-${item.orden}">${item.fecha_mod || ''}</td></tr>`;
     });
     document.getElementById(`table-container-${key}`).innerHTML = html + `</tbody></table>`;
 }
-
 
 // =========================================================
 // SECCIÓN 8: GESTIÓN DE NOTAS EN CELDAS (ORDENES)
